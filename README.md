@@ -1,11 +1,4 @@
 # Autokbisw - Automatic keyboard input source switcher
-## This project is looking for a maintainer
-
-I tried to keep the project working accross OS updates for a while but I don't
-really have time to spare to maintain a software I don't use since I switched 
-to ubuntu+lenovo after my MBP died. 
-I'll leave the repository as it is, if someone is willing to take over autokbisw
-and needs me to do something to help just open an issue to let me know. 
 
 ## Motivation
 
@@ -22,12 +15,28 @@ This software removes one of the switches: it memorizes the last active osx
 input source for a given keyboard and restores it automatically when that
 keyboard becomes the active keyboard. 
 
+### Build from Source
+
+Clone this repository, make sure you have xcode installed and run the following commands:
+
+```
+cd autokbisw
+swift build --configuration release
+```
+
+In the output will be the path to the built program, something like `.build/release/autokbisw`.
+
+You can run it from the `release` directory as is.
+
+To install it in `/usr/local`, we need to change the path to `libSwiftToolsSupport.dylib` lib in the executable:
+
+```
+install_name_tool -change ".build/release/libSwiftToolsSupport.dylib" "/usr/local/lib/libSwiftToolsSupport.dylib" .build/release/autokbisw
+cp .build/release/libSwiftToolsSupport.dylib /usr/local/lib/
+cp .build/release/autokbisw /usr/local/bin/
+```
+
 ## Installation 
-
-### From Binaries
-
-Download one of the binary packages from this repository releases, unzip its
-content to whatever folder suits you and run it. 
 
 If you want the program to start automatically when you log in,
 you can copy the provided plist file to `~/Library/LaunchAgents` and load it
@@ -37,22 +46,28 @@ cp eu.byjean.autokbisw.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 ```
 
-### Via [Homebrew](https://brew.sh)
 
-`brew install jeantil/autokbisw/autokbisw`
+If `launchctl` returns an error, you may try one of the following:
 
-### From Source
-
-Clone this repository, make sure you have xcode installed and run the following command:
+Unload and load the service again:
 ```
-swift build --configuration release
-```
-In the output will be the path to the built program, something like `${PWD}/.build/release/autokbisw`.
-
-You can run it as is or _install_ it : 
-
-```
-cp ${PWD}/.build/release/autokbisw /usr/local/bin/
-cp autokbisw/eu.byjean.autokbisw.plist ~/Library/LaunchAgents/
+launchctl unload ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
+```
+
+Force a restart of the service:
+```
+launchctl kickstart -kp gui/501/eu.byjean.autokbisw
+```
+
+This may be needed on the first run, after permissions to capture all keyboard events have been granted.
+
+`501` may need to be replaced with your user id (uid). To find your user id, run:
+```
+id
+```
+
+Maybe you need to enable the service:
+```
+launchctl enable gui/501/eu.byjean.autokbisw
 ```
