@@ -27,8 +27,8 @@ Use locationId to identify keyboards (defaults to false.)
 Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards identifiers means the configured language will be associated to a keyboard on a specific port.
 
 """
-let locationOption = parser.add(option: "--location", shortName: "-l", kind: Bool.self, usage: locationUsage, completion: .none)
-let verboseOption = parser.add(option: "--verbose", shortName: "-v", kind: Int.self, usage: "Print verbose output (1 = DEBUG, 2 = TRACE)", completion: .none)
+let locationOption = parser.add(option: "--location", shortName: "-l", kind: Bool.self, usage: locationUsage, completion: ShellCompletion.none)
+let verboseOption = parser.add(option: "--verbose", shortName: "-v", kind: Int.self, usage: "Print verbose output (1 = DEBUG, 2 = TRACE)", completion: ShellCompletion.none)
 
 do {
     let parsedArguments = try parser.parse(arguments)
