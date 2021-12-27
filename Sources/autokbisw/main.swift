@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Basic
+import TSCBasic
 import Foundation
-import Utility
+import TSCUtility
 
 let DEBUG = 1
 let TRACE = 2

@@ -2,12 +2,12 @@
   "object": {
     "pins": [
       {
-        "package": "SwiftPM",
-        "repositoryURL": "https://github.com/apple/swift-package-manager",
+        "package": "swift-tools-support-core",
+        "repositoryURL": "https://github.com/apple/swift-tools-support-core.git",
         "state": {
           "branch": null,
-          "revision": "235aacc514cb81a6881364b0fedcb3dd083228f3",
-          "version": "0.3.0"
+          "revision": "3b6b97d612b56e25d80d0807f5bc38ea08b7bdf3",
+          "version": "0.2.3"
         }
       }
     ]
