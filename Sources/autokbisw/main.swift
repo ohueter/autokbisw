@@ -12,37 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import TSCBasic
+import ArgumentParser
 import Foundation
-import TSCUtility
 
 let DEBUG = 1
 let TRACE = 2
 
-let arguments = Array(ProcessInfo.processInfo.arguments.dropFirst())
-let parser = ArgumentParser(usage: "<options>", overview: "Automatic keyboard/input source switching for macOS")
+struct Autokbisw: ParsableCommand {
+    static var configuration = CommandConfiguration(
+        abstract: "Automatic keyboard/input source switching for macOS."
+    )
 
-let locationUsage = """
-Use locationId to identify keyboards (defaults to false.)
-Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards identifiers means the configured language will be associated to a keyboard on a specific port.
+    @Option(
+        name: .shortAndLong,
+        help: ArgumentHelp(
+            "Print verbose output (1 = DEBUG, 2 = TRACE).",
+            valueName: "verbosity"
+        )
+    )
+    var verbose = 0
 
-"""
-let locationOption = parser.add(option: "--location", shortName: "-l", kind: Bool.self, usage: locationUsage, completion: ShellCompletion.none)
-let verboseOption = parser.add(option: "--verbose", shortName: "-v", kind: Int.self, usage: "Print verbose output (1 = DEBUG, 2 = TRACE)", completion: ShellCompletion.none)
+    @Flag(
+        name: .shortAndLong,
+        help: ArgumentHelp(
+            "Use locationId to identify keyboards.",
+            discussion: "Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards identifiers means the configured language will be associated to a keyboard on a specific port."
+        )
+    )
+    var location = false
 
-do {
-    let parsedArguments = try parser.parse(arguments)
-    let useLocation = parsedArguments.get(locationOption) ?? false
-    let verbosity = parsedArguments.get(verboseOption) ?? 0
-
-    if verbosity > 0 {
-        print("Starting with useLocation: \(useLocation) - verbosity: \(verbosity)");
+    mutating func run() throws {
+        if verbose > 0 {
+            print("Starting with useLocation: \(location) - verbosity: \(verbose)")
+        }
+        let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: location, verbosity: verbose)
+        monitor?.start()
+        CFRunLoopRun()
     }
-    let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: useLocation, verbosity: verbosity)
-    monitor?.start()
-    CFRunLoopRun()
-} catch let e as ArgumentParserError {
-    print(e.description)
-} catch let e {
-    print(e.localizedDescription)
 }
+
+Autokbisw.main()
