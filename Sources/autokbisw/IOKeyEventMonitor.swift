@@ -23,8 +23,8 @@ internal final class IOKeyEventMonitor {
     fileprivate let MAPPINGS_DEFAULTS_KEY = "keyboardISMapping"
     fileprivate let notificationCenter: CFNotificationCenter
     fileprivate var lastActiveKeyboard: String = ""
-    fileprivate var kb2is: [String: TISInputSource] = [String: TISInputSource]()
-    fileprivate var defaults: UserDefaults = UserDefaults.standard
+    fileprivate var kb2is: [String: TISInputSource] = .init()
+    fileprivate var defaults: UserDefaults = .standard
     fileprivate var useLocation: Bool
     fileprivate var verbosity: Int
 
@@ -130,18 +130,18 @@ extension IOKeyEventMonitor {
             kTISPropertyInputSourceIsEnableCapable: true,
             kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource ?? "" as CFString,
         ] as CFDictionary
-        let inputSources = TISCreateInputSourceList(selectableIsProperties, false).takeUnretainedValue() as! Array<TISInputSource>
+        let inputSources = TISCreateInputSourceList(selectableIsProperties, false).takeUnretainedValue() as! [TISInputSource]
 
         let inputSourcesById = inputSources.reduce([String: TISInputSource]()) {
-            (dict, inputSource) -> [String: TISInputSource] in
-            var dict = dict
-            if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
-                dict[id] = inputSource
-            }
-            return dict
+            dict, inputSource -> [String: TISInputSource] in
+                var dict = dict
+                if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
+                    dict[id] = inputSource
+                }
+                return dict
         }
 
-        if let mappings = self.defaults.dictionary(forKey: MAPPINGS_DEFAULTS_KEY) {
+        if let mappings = defaults.dictionary(forKey: MAPPINGS_DEFAULTS_KEY) {
             for (keyboardId, inputSourceId) in mappings {
                 kb2is[keyboardId] = inputSourcesById[String(describing: inputSourceId)]
             }
@@ -175,6 +175,6 @@ extension IOKeyEventMonitor {
 
 infix operator ???: NilCoalescingPrecedence
 
-public func ???<T>(optional: T?, defaultValue: @autoclosure () -> String) -> String {
+public func ??? <T>(optional: T?, defaultValue: @autoclosure () -> String) -> String {
     return optional.map { String(describing: $0) } ?? defaultValue()
 }
