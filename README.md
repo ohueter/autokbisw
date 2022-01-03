@@ -15,7 +15,16 @@ This software removes one of the switches: it memorizes the last active macOS
 input source for a given keyboard and restores it automatically when that
 keyboard becomes the active keyboard. 
 
-### Build from Source
+## Homebrew
+
+Install as a service using [Homebrew](https://brew.sh):
+
+```
+brew install ohueter/tap/autokbisw
+brew services start ohueter/tap/autokbisw
+```
+
+## Build from Source
 
 Clone this repository, make sure you have XCode installed and run the following commands:
 
