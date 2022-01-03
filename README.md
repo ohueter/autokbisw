@@ -7,17 +7,17 @@ The session took place on a french mac book pro, using a pair of french pc
 keyboards. Some programmers were used to eclipse, others to intellij on linux,
 others to intellij on mac. 
 
-While OSx automatically switches the layout when a keyboard is activated it
-doesn't change the keymap, meaning we had to remember changing both the os _and_
-the IDE keymap each time we switched developper. 
+While macOS automatically switches the layout when a keyboard is activated it
+doesn't change the keymap, meaning we had to remember changing both the OS _and_
+the IDE keymap each time we switched developer. 
 
-This software removes one of the switches: it memorizes the last active osx
+This software removes one of the switches: it memorizes the last active macOS
 input source for a given keyboard and restores it automatically when that
 keyboard becomes the active keyboard. 
 
 ### Build from Source
 
-Clone this repository, make sure you have xcode installed and run the following commands:
+Clone this repository, make sure you have XCode installed and run the following commands:
 
 ```
 cd autokbisw
@@ -28,15 +28,13 @@ In the output will be the path to the built program, something like `.build/rele
 
 You can run it from the `release` directory as is.
 
-To install it in `/usr/local`, we need to change the path to `libSwiftToolsSupport.dylib` lib in the executable:
-
-```
-install_name_tool -change ".build/release/libSwiftToolsSupport.dylib" "/usr/local/lib/libSwiftToolsSupport.dylib" .build/release/autokbisw
-cp .build/release/libSwiftToolsSupport.dylib /usr/local/lib/
-cp .build/release/autokbisw /usr/local/bin/
-```
-
 ## Installation 
+
+To install it in `/usr/local/bin`, run:
+
+```
+sudo cp .build/release/autokbisw /usr/local/bin/
+```
 
 If you want the program to start automatically when you log in,
 you can copy the provided plist file to `~/Library/LaunchAgents` and load it
@@ -46,16 +44,20 @@ cp eu.byjean.autokbisw.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 ```
 
+## Troubleshooting
 
 If `launchctl` returns an error, you may try one of the following:
 
-Unload and load the service again:
+### 1. Reboot
+Running `launchctl` sometimes produced inexplainable error messages (to me), that often were gone after rebooting. 🤷‍♂️
+
+### 2. Unload and load the service again:
 ```
 launchctl unload ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 ```
 
-Force a restart of the service:
+### 3. Force a restart of the service:
 ```
 launchctl kickstart -kp gui/501/eu.byjean.autokbisw
 ```
@@ -67,7 +69,7 @@ This may be needed on the first run, after permissions to capture all keyboard e
 id
 ```
 
-Maybe you need to enable the service:
+### 4. Maybe you need to (re-)enable the service:
 ```
 launchctl enable gui/501/eu.byjean.autokbisw
 ```
