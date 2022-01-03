@@ -128,7 +128,7 @@ extension IOKeyEventMonitor {
     func loadMappings() {
         let selectableIsProperties = [
             kTISPropertyInputSourceIsEnableCapable: true,
-            kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource,
+            kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource ?? "" as CFString,
         ] as CFDictionary
         let inputSources = TISCreateInputSourceList(selectableIsProperties, false).takeUnretainedValue() as! Array<TISInputSource>
 
