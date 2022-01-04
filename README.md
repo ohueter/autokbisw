@@ -63,18 +63,18 @@ launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 
 If `launchctl` returns an error, you may try one of the following:
 
-### 1. Reboot
+#### 1. Reboot
 
 Running `launchctl` sometimes produced inexplainable error messages (to me), that often were gone after rebooting. 🤷‍♂️
 
-### 2. Unload and load the service again:
+#### 2. Unload and load the service again:
 
 ```
 launchctl unload ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
 ```
 
-### 3. Force a restart of the service:
+#### 3. Force a restart of the service:
 
 ```
 launchctl kickstart -kp gui/501/eu.byjean.autokbisw
@@ -88,7 +88,7 @@ This may be needed on the first run, after permissions to capture all keyboard e
 id
 ```
 
-### 4. Maybe you need to (re-)enable the service:
+#### 4. Maybe you need to (re-)enable the service:
 
 ```
 launchctl enable gui/501/eu.byjean.autokbisw
