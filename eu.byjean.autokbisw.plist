@@ -4,26 +4,25 @@
   <dict>
     <key>Label</key>
     <string>eu.byjean.autokbisw</string>
-
     <key>ProgramArguments</key>
     <array>
       <string>/usr/local/bin/autokbisw</string>
       <!--
         <string>-l</string>
         <string>-v</string>
-        <string>2</string>
+        <string>1</string>
       -->
     </array>
-
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
     <!-- 
       <key>StandardOutPath</key>
       <string>/usr/local/var/log/autokbisw.log</string>
       <key>StandardErrorPath</key>
       <string>/usr/local/var/log/autokbisw.log</string>
     -->
-
-    <key>RunAtLoad</key>
-    <true/>
   </dict>
 </plist>
 
