@@ -96,4 +96,4 @@ launchctl enable gui/501/eu.byjean.autokbisw
 
 ## Acknowledgements
 
-This program has originally been developed by [Jean Helou](https://github.com/jeantil/autokbisw) (@jeantil).
+This program has originally been developed by [Jean Helou](https://github.com/jeantil/autokbisw) ([@jeantil](https://github.com/jeantil)).
