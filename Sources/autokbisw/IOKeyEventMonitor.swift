@@ -74,7 +74,7 @@ internal final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
-            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse)) ?? false
+            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse))
 
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
