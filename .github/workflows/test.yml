@@ -1,0 +1,13 @@
+name: Tests
+
+on: pull_request
+
+jobs:
+  tests:
+    name: Run tests
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: swift build --configuration release
