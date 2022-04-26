@@ -3,11 +3,13 @@ name: Tests
 on: pull_request
 
 jobs:
-  tests:
-    name: Run tests
+  build:
+    name: Build
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Build
       run: swift build --configuration release
