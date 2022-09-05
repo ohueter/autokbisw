@@ -4,12 +4,19 @@ on: pull_request
 
 jobs:
   build:
-    name: Build
-    runs-on: macos-latest
+    name: Test build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-11
+            os_name: monterey
+          - os: macos-12
+            os_name: bigsur
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Build
-      run: swift build --configuration release
+      - name: Build
+        run: swift build --configuration release --arch arm64 --arch x86_64
