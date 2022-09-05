@@ -15,7 +15,7 @@ jobs:
           - os: macos-11
             os_name: monterey
           - os: macos-12
-            os_name: bigsur
+            os_name: big_sur
     steps:
       - uses: actions/checkout@v2
       - name: Build
