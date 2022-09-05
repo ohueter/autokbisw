@@ -23,12 +23,12 @@ jobs:
       - name: Create archive
         run: |
           cd .build/apple/Products/Release/
-          tar -czf autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz autokbisw
+          tar -czf autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz autokbisw
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz
-          asset_name: autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz
+          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz
+          asset_name: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz
           tag: ${{ github.ref }}
           overwrite: true
