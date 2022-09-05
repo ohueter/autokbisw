@@ -6,21 +6,29 @@ on:
       - '*'
 
 jobs:
-  build:
-    name: Publish binaries
-    runs-on: macos-latest
-
+  publish:
+    name: Publish binaries for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-11
+            os_name: monterey
+          - os: macos-12
+            os_name: big_sur
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: swift build --configuration release
-    - name: Create zip file
-      run: cd .build/release/ && zip autokbisw-${{github.ref_name}}.zip autokbisw
-    - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: .build/release/autokbisw-${{github.ref_name}}.zip
-        asset_name: autokbisw-${{github.ref_name}}.zip
-        tag: ${{ github.ref }}
-        overwrite: true
+      - uses: actions/checkout@v2
+      - name: Build
+        run: swift build --configuration release --arch arm64 --arch x86_64
+      - name: Create archive
+        run: |
+          cd .build/apple/Products/Release/
+          tar -czf autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz autokbisw
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz
+          asset_name: autokbisw-${{github.ref_name}}-${{ matrix.os }}-${{ matrix.os_name }}.tgz
+          tag: ${{ github.ref }}
+          overwrite: true
