@@ -94,6 +94,17 @@ id
 launchctl enable gui/501/eu.byjean.autokbisw
 ```
 
+## How it works
+
+- Begin Typing with your first keyboard, such that it becomes the `active keyboard`
+- Switch `Input source` to the appropriate one for your first keyboard
+- Begin Typing with your second keyboard, such that it becomes the `active keyboard`
+- Switch `Input source` to the appropriate one for your second keyboard
+- If everything is working, you should notice that after the first keystroke on any of your two keyboards, the input source automatically switches to the appropriate one
+
+
+NB: the input switch happens **after** the first keystroke, which means you won't have the appropriate input source at this time 
+
 ## Acknowledgements
 
 This program has originally been developed by [Jean Helou](https://github.com/jeantil/autokbisw) ([@jeantil](https://github.com/jeantil)).
