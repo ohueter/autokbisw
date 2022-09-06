@@ -10,9 +10,9 @@ jobs:
       matrix:
         include:
           - os: macos-11
-            os_name: monterey
-          - os: macos-12
             os_name: big_sur
+          - os: macos-12
+            os_name: monterey
 
     steps:
       - name: Checkout

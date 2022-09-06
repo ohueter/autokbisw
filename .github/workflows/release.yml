@@ -13,9 +13,9 @@ jobs:
       matrix:
         include:
           - os: macos-11
-            os_name: monterey
-          - os: macos-12
             os_name: big_sur
+          - os: macos-12
+            os_name: monterey
     steps:
       - uses: actions/checkout@v2
       - name: Build
@@ -23,12 +23,21 @@ jobs:
       - name: Create archive
         run: |
           cd .build/apple/Products/Release/
-          tar -czf autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz autokbisw
-      - name: Upload binaries to release
+          tar -czf autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz autokbisw
+          cp autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
+      - name: Upload binaries to release (x86_64)
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz
-          asset_name: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.tar.gz
+          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
+          asset_name: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+      - name: Upload binaries to release (arm64)
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
+          asset_name: autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
           tag: ${{ github.ref }}
           overwrite: true
