@@ -7,10 +7,11 @@ on:
 
 jobs:
   publish:
-    name: Publish binaries for ${{ matrix.os }}
+    name: Publish binaries for ${{ matrix.os }} ${{ matrix.name }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        arch: [arm64, x86_64]
         include:
           - os: macos-11
             os_name: big_sur
@@ -18,26 +19,28 @@ jobs:
             os_name: monterey
     steps:
       - uses: actions/checkout@v2
-      - name: Build
-        run: swift build --configuration release --arch arm64 --arch x86_64
+
+      - name: Build binary
+        run: swift build --configuration release --arch ${{ matrix.arch }}
+
+      - name: Generate archive name
+        uses: haya14busa/action-cond@v1
+        id: archive-name
+        with:
+          cond: ${{ matrix.arch == 'arm64' }}
+          if_true: autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
+          if_false: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
+
       - name: Create archive
         run: |
-          cd .build/apple/Products/Release/
-          tar -czf autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz autokbisw
-          cp autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
-      - name: Upload binaries to release (x86_64)
+          cd .build/release
+          tar -czf ${{ steps.archive-name.outputs.value }} autokbisw
+
+      - name: Upload archive to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
-          asset_name: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-      - name: Upload binaries to release (arm64)
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: .build/apple/Products/Release/autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
-          asset_name: autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
+          file: .build/release/${{ steps.archive-name.outputs.value }}
+          asset_name: ${{ steps.archive-name.outputs.value }}
           tag: ${{ github.ref }}
           overwrite: true
