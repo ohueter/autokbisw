@@ -29,8 +29,8 @@ jobs:
         id: archive-name
         with:
           cond: ${{ matrix.arch == 'arm64' }}
-          if_true: autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.bottle.1.tar.gz
-          if_false: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.bottle.1.tar.gz
+          if_true: autokbisw-${{github.ref_name}}.arm64_${{ matrix.os_name }}.tar.gz
+          if_false: autokbisw-${{github.ref_name}}.${{ matrix.os_name }}.tar.gz
 
       - name: Create archive
         run: |
