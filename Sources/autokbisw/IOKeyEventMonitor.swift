@@ -74,8 +74,6 @@ internal final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
-            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse))
-
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
             let product = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductKey as CFString) ??? "unknown"
@@ -83,6 +81,9 @@ internal final class IOKeyEventMonitor {
             let serialNumber = IOHIDDeviceGetProperty(senderDevice, kIOHIDSerialNumberKey as CFString) ??? "unknown"
             let locationId = IOHIDDeviceGetProperty(senderDevice, kIOHIDLocationIDKey as CFString) ??? "unknown"
             let uniqueId = IOHIDDeviceGetProperty(senderDevice, kIOHIDUniqueIDKey as CFString) ??? "unknown"
+            let isKeycron = (Int(vendorId) ?? 0) == 13364
+            
+            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse)) && !isKeycron
 
             let keyboard = selfPtr.useLocation
                 ? "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)-\(locationId)]"
