@@ -29,6 +29,16 @@ brew services restart ohueter/tap/autokbisw
 
 If `autokbisw` still doesn't work even after rebooting, try re-adding the executable manually to System Preferences > Security & Privacy > Privacy > Input Monitoring (after removing existing entries). The path to add should be `/usr/local/bin/autokbisw` (Intel Macs) or `/opt/homebrew/opt/autokbisw/bin/autokbisw` (Apple M1 Macs).
 
+## How it works
+
+- Begin Typing with your first keyboard, such that it becomes the `active keyboard`.
+- Switch `Input source` to the appropriate one for your first keyboard.
+- Begin Typing with your second keyboard, such that it becomes the `active keyboard`.
+- Switch `Input source` to the appropriate one for your second keyboard.
+- If everything is working, you should notice that after the first keystroke on any of your two keyboards, the input source automatically switches to the appropriate one.
+
+NB: the input switch happens **after** the first keystroke, which means you won't have the appropriate input source at this time.
+
 ## Building from source
 
 Clone this repository, make sure you have XCode installed and run the following commands:
@@ -41,69 +51,6 @@ swift build --configuration release
 In the output will be the path to the built program, something like `.build/release/autokbisw`.
 
 You can run it from the `release` directory as is.
-
-### Installation
-
-To install it in `/usr/local/bin`, run:
-
-```
-sudo cp .build/release/autokbisw /usr/local/bin/
-```
-
-If you want the program to start automatically when you log in,
-you can copy the provided plist file to `~/Library/LaunchAgents` and load it
-manually for the first run:
-
-```
-cp eu.byjean.autokbisw.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
-```
-
-### Troubleshooting
-
-If `launchctl` returns an error, you may try one of the following:
-
-#### 1. Reboot
-
-Running `launchctl` sometimes produced inexplainable error messages (to me), that often were gone after rebooting. 🤷‍♂️
-
-#### 2. Unload and load the service again:
-
-```
-launchctl unload ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
-launchctl load ~/Library/LaunchAgents/eu.byjean.autokbisw.plist
-```
-
-#### 3. Force a restart of the service:
-
-```
-launchctl kickstart -kp gui/501/eu.byjean.autokbisw
-```
-
-This may be needed on the first run, after permissions to capture all keyboard events have been granted.
-
-`501` may need to be replaced with your user id (uid). To find your user id, run:
-
-```
-id
-```
-
-#### 4. Maybe you need to (re-)enable the service:
-
-```
-launchctl enable gui/501/eu.byjean.autokbisw
-```
-
-## How it works
-
-- Begin Typing with your first keyboard, such that it becomes the `active keyboard`
-- Switch `Input source` to the appropriate one for your first keyboard
-- Begin Typing with your second keyboard, such that it becomes the `active keyboard`
-- Switch `Input source` to the appropriate one for your second keyboard
-- If everything is working, you should notice that after the first keystroke on any of your two keyboards, the input source automatically switches to the appropriate one
-
-
-NB: the input switch happens **after** the first keystroke, which means you won't have the appropriate input source at this time 
 
 ## Acknowledgements
 
