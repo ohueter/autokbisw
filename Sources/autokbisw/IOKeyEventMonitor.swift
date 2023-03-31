@@ -28,6 +28,7 @@ internal final class IOKeyEventMonitor {
     fileprivate var defaults: UserDefaults = .standard
     fileprivate var useLocation: Bool
     fileprivate var verbosity: Int
+    fileprivate let assignmentLock = NSLock()
 
     init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int) {
         self.useLocation = useLocation
@@ -75,7 +76,7 @@ internal final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
-            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse))
+            let conformsToKeyboard = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard))
 
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
@@ -89,17 +90,16 @@ internal final class IOKeyEventMonitor {
                 ? "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)-\(locationId)]"
                 : "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)]"
 
-            if selfPtr.verbosity >= TRACE {
-                print("received event from keyboard \(keyboard) - \(locationId) - \(uniqueId)")
-            }
 
-            if conformsToMouse {
+            if conformsToKeyboard {
                 if selfPtr.verbosity >= TRACE {
-                    print("ignoring event as device is a mouse")
+                    print("received event from keyboard \(keyboard) - \(locationId) - \(uniqueId)")
                 }
-                selfPtr.onKeyboardEvent(keyboard: "CONFORMS_TO_MOUSE")
-            } else {
                 selfPtr.onKeyboardEvent(keyboard: keyboard)
+            } else {
+                if selfPtr.verbosity >= TRACE {
+                    print("received event from device \(keyboard) - \(locationId) - \(uniqueId). Ignoring as device is not a keyboard")
+                }
             } 
         }
 
@@ -205,15 +205,22 @@ extension IOKeyEventMonitor {
      Apply functions
      */
     func restoreInputSource(keyboard: String) {
-        if let targetIs = kb2is[keyboard] {
-            if verbosity >= DEBUG {
-                print("SETting values for keyboard \(keyboard):\n\t\(targetIs)")
+        guard let targetIs = kb2is[keyboard] else {
+            if verbosity >= TRACE {
+                print("No previous mapping saved for \(keyboard), awaiting the user to select the right one")
             }
-            if let lang = self.lang2inputSource[String(describing: targetIs.lang)] {
-                TISSelectInputSource(lang)
-            }
+            return
+        }
+        if verbosity >= DEBUG {
+            print("SETting values for keyboard \(keyboard):\n\t\(targetIs)")
+        }
+        if let lang = self.lang2inputSource[String(describing: targetIs.lang)] {
+            //This triggers the listener, see comment on onInputSourceChanged
+            TISSelectInputSource(lang)
         } else {
-            storeInputSource(keyboard: keyboard)
+            if verbosity >= DEBUG {
+                print("Lang \(targetIs) associated to \(keyboard) is not available anymore")
+            }
         }
     }
     
@@ -221,31 +228,37 @@ extension IOKeyEventMonitor {
      Entrypoints functions
      */
 
+    /**
+     This function is used to store changes in the config done by the user, to assign the correct language to the current keyboard.
+     If a language change happens meanwhile we are changing it to be the new keyboard's, there can be disalignments from what is saved and what is applied, hence the lock.
+     This is also triggered when we set a new input source, thus generating an unnecessary save, as we would re-assign the mapping to the keyboard.
+     */
     func onInputSourceChanged() {
+        self.assignmentLock.lock()
+        //lastActiveKeyboard can be nil only if the language is changed between program start and the first keypress, so we can ignore this corner case
         if let lastActiveKeyboard = lastActiveKeyboard {
             storeInputSource(keyboard: lastActiveKeyboard)
         }
+        self.assignmentLock.unlock()
     }
 
     func onKeyboardEvent(keyboard: String) {
-        guard keyboard != "CONFORMS_TO_MOUSE" else { return }
-        guard let lastActiveKeyboard=lastActiveKeyboard else {
-            // initialization, avoid overriding current state of things,
-            // supposing the system config should take priority over the stored one
-            lastActiveKeyboard = keyboard
-            if verbosity >= TRACE {
-                print("init: set active keyboard since startup to \(keyboard)")
-            }
-            return
-        }
         guard lastActiveKeyboard != keyboard else { return }
         if verbosity >= TRACE {
-            print("change: keyboard changed from \(lastActiveKeyboard) to \(keyboard)")
+            print("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
         }
 
-        // It's not a mouse nor the previous keyboard, so let's try restoring keyboard settings
-        restoreInputSource(keyboard: keyboard)
+        // It's a keyboard and either it's different from the previous keyboard or it's the first type with this keyboard since startup
+        self.assignmentLock.lock()
+        if lastActiveKeyboard == nil {
+            // If it's the first type, persist settings, considering the current user setup is what the user wants to use for the currently typing keyboard
+            storeInputSource(keyboard: keyboard)
+        } else {
+            // If it's different, so let's try restoring keyboard settings
+            restoreInputSource(keyboard: keyboard)
+        }
         self.lastActiveKeyboard = keyboard
+        self.assignmentLock.unlock()
     }
 }
 
