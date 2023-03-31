@@ -229,17 +229,23 @@ extension IOKeyEventMonitor {
 
     func onKeyboardEvent(keyboard: String) {
         guard keyboard != "CONFORMS_TO_MOUSE" else { return }
-        if lastActiveKeyboard == nil {
+        guard let lastActiveKeyboard=lastActiveKeyboard else {
             // initialization, avoid overriding current state of things,
             // supposing the system config should take priority over the stored one
             lastActiveKeyboard = keyboard
+            if verbosity >= TRACE {
+                print("init: set active keyboard since startup to \(keyboard)")
+            }
             return
         }
         guard lastActiveKeyboard != keyboard else { return }
+        if verbosity >= TRACE {
+            print("change: keyboard changed from \(lastActiveKeyboard) to \(keyboard)")
+        }
 
         // It's not a mouse nor the previous keyboard, so let's try restoring keyboard settings
         restoreInputSource(keyboard: keyboard)
-        lastActiveKeyboard = keyboard
+        self.lastActiveKeyboard = keyboard
     }
 }
 
