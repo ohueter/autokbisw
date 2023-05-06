@@ -13,6 +13,8 @@ jobs:
             os_name: big_sur
           - os: macos-12
             os_name: monterey
+          - os: macos-13
+            os_name: ventura
 
     steps:
       - name: Checkout
