@@ -46,7 +46,36 @@ cd autokbisw
 swift build --configuration release
 ```
 
-The output will provide the path to the built binary, likely `.build/release/autokbisw`. You can run it from the `release` directory as is.
+The output will provide the path to the built binary, likely `.build/release/autokbisw`.
+
+To give the binary all the required permissions and to launch autokbisw at login, create a .plist file containing the following content, and making sure to replace '/path/to/autokbisw' with the actual full path of your autokbisw binary:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>autokbisw</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/path/to/autokbisw</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+  </dict>
+</plist>
+```
+
+Save the .plist file in /Library/LaunchAgents and launch autokbisw for the fist time using the following command:
+
+```
+launchctl load /Library/LaunchAgents/autokbisw.plist
+```
+
+You will be prompted to allow the application to monitor keyboard input, and upon first restart you will be notified that autokbisw is allowed to run as a background process.
 
 ### Command-Line Arguments
 
