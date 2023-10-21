@@ -69,10 +69,10 @@ To give the binary all the required permissions and to launch autokbisw at login
 </plist>
 ```
 
-Save the .plist file in /Library/LaunchAgents and launch autokbisw for the fist time using the following command:
+Save the .plist file in ~/Library/LaunchAgents and launch autokbisw for the fist time using the following command:
 
 ```
-launchctl load /Library/LaunchAgents/autokbisw.plist
+launchctl load ~/Library/LaunchAgents/autokbisw.plist
 ```
 
 You will be prompted to allow the application to monitor keyboard input, and upon first restart you will be notified that autokbisw is allowed to run as a background process.
