@@ -74,7 +74,7 @@ internal final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
-            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse))
+            let conformsToKbd = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard))
 
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
@@ -92,9 +92,9 @@ internal final class IOKeyEventMonitor {
                 print("received event from keyboard \(keyboard) - \(locationId) - \(uniqueId)")
             }
 
-            if conformsToMouse {
+            if !conformsToKbd {
                 if selfPtr.verbosity >= TRACE {
-                    print("ignoring event as device is a mouse")
+                    print("ignoring event as device is not a keyboard")
                 }
                 selfPtr.onKeyboardEvent(keyboard: "CONFORMS_TO_MOUSE")
             } else {
