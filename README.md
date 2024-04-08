@@ -27,7 +27,7 @@ If `autokbisw` isn't working after the first start of the service, try these sol
 
 2. Re-grant the required privileges to the service by removing and re-adding the executable under `System Preferences > Security & Privacy > Privacy > Input Monitoring`. The path to add should either be `/usr/local/bin/autokbisw` (on Intel Macs) or `/opt/homebrew/opt/autokbisw/bin/autokbisw` (on Apple M1 Macs).
 
-_Note: autokbisw is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes karabiner appear as the system input device, and autokbisw can't detect the original input device. However, you can manually configure Karabiner to switch keyboard layouts based on device ID and other variables -- see [this issue](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996)._
+_Note: autokbisw is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes karabiner appear as the system input device, and autokbisw can't detect the original input device. However, you can also manually configure Karabiner to switch keyboard layouts based on device ID and other variables -- see [this GH answer](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996)._
 
 ## Usage instructions
 
