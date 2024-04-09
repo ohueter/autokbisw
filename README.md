@@ -55,6 +55,12 @@ If `autokbisw` isn't working after the first start of the service, try these sol
 
 2. Re-grant the required privileges to the service by removing and re-adding the executable under `System Preferences > Security & Privacy > Privacy > Input Monitoring`. The path to add should either be `/usr/local/bin/autokbisw` (on Intel Macs) or `/opt/homebrew/opt/autokbisw/bin/autokbisw` (on Apple M1 Macs).
 
+### autokbisw doesn't work as expected with my Logitech keyboard or mouse.
+
+It seems that some Logitech devices miss-identify as keyboard or mouse, although they're actually the respective other kind of device (see GitHub issues [#7](https://github.com/ohueter/autokbisw/issues/7) or [#18](https://github.com/ohueter/autokbisw/issues/18) for examples). If `autokbisw` isn't working for you because of this issue, currently the only option is to fork the repository, edit the source code and build the program with your changes.
+
+**Help wanted:** We've sketched a software design change (manually activate or deactivate autokbisw for specific devices) in issues [#24](https://github.com/ohueter/autokbisw/issues/24) and [#25](https://github.com/ohueter/autokbisw/issues/25) to resolve this issue. If you are proficient in Swift and would like to contribute, your help would be greatly appreciated!
+
 ### Can autokbisw be used with the `Automatically switch to a document's input source` option?
 
 `autokbisw` is not compatible with the `Automatically switch to a document's input source` system option (found under System Settings > Keyboard > Input sources > Edit…). If the setting is turned on, `autokbisw` might not work as expected.
