@@ -9,12 +9,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-11
-            os_name: big_sur
           - os: macos-12
             os_name: monterey
           - os: macos-13
             os_name: ventura
+          - os: macos-14
+            os_name: sonoma
 
     steps:
       - name: Checkout
