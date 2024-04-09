@@ -6,7 +6,7 @@
 
 The easiest way to install autokbisw as a background service is by using [Homebrew](https://brew.sh):
 
-```
+```sh
 brew install ohueter/tap/autokbisw
 brew services start autokbisw
 ```
@@ -14,20 +14,6 @@ brew services start autokbisw
 Please note that `autokbisw` is compiled from source by Homebrew, so a full installation of Xcode.app is required. Installing just the Command Line Tools is not sufficient.
 
 `autokbisw` requires privileges to monitor all keyboard input. You need to grant these privileges on the first start of the service.
-
-### Throubleshooting
-
-If `autokbisw` isn't working after the first start of the service, try these solutions:
-
-1. Restart the service:
-
-   ```
-   brew services restart autokbisw
-   ```
-
-2. Re-grant the required privileges to the service by removing and re-adding the executable under `System Preferences > Security & Privacy > Privacy > Input Monitoring`. The path to add should either be `/usr/local/bin/autokbisw` (on Intel Macs) or `/opt/homebrew/opt/autokbisw/bin/autokbisw` (on Apple M1 Macs).
-
-_Note: `autokbisw` is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes Karabiner appear as the system input device, and `autokbisw` can't detect the original input device. However, you can manually configure Karabiner to switch keyboard layouts based on device ID and other variables, it just won't be *fully* automated -- see [this GH answer](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996)._
 
 ## Usage instructions
 
@@ -39,11 +25,49 @@ _Note: `autokbisw` is not compatible with [Karabiner Elements](https://karabiner
 
 You should notice that after the first keystroke on any of your keyboards, the input source automatically switches to the selected one. Note that the input source switch happens **after** the first keystroke, so you won't have the selected input source at this time.
 
+## FAQ & Common issues
+
+### The installation fails with an XCode error.
+
+On some system configurations, the installation fails with XCode errors similar to those described in GitHub issues #12 and #28. In order to check if your system is affected, run
+
+```sh
+xcode-select --print-path
+```
+
+in the terminal. The expected output is `/Applications/Xcode.app/Contents/Developer`. If the output on your system is different, run
+
+```sh
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+
+to set the correct path and (hopefully) fix the compilation.
+
+### `autokbisw` doesn't work after installation.
+
+If `autokbisw` isn't working after the first start of the service, try these solutions:
+
+1. Restart the service:
+
+   ```sh
+   brew services restart autokbisw
+   ```
+
+2. Re-grant the required privileges to the service by removing and re-adding the executable under `System Preferences > Security & Privacy > Privacy > Input Monitoring`. The path to add should either be `/usr/local/bin/autokbisw` (on Intel Macs) or `/opt/homebrew/opt/autokbisw/bin/autokbisw` (on Apple M1 Macs).
+
+### Can autokbisw be used with the `Automatically switch to a document's input source` option?
+
+`autokbisw` is not compatible with the `Automatically switch to a document's input source` system option (found under System Settings > Keyboard > Input sources > Edit…). If the setting is turned on, `autokbisw` might not work as expected.
+
+### Can autokbisw be used with Karabiner-Elements?
+
+`autokbisw` is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes Karabiner appear as the system input device, and `autokbisw` can't detect the original input device. However, you can manually configure Karabiner to switch keyboard layouts based on device ID and other variables, it just won't be _fully_ automated -- see [this GH answer](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996).
+
 ## Building from source
 
 Clone this repository, make sure you have a full Xcode.app installation, and run the following commands:
 
-```
+```sh
 cd autokbisw
 swift build --configuration release
 ```
