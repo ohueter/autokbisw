@@ -29,7 +29,7 @@ You should notice that after the first keystroke on any of your keyboards, the i
 
 ### The installation fails with an XCode error.
 
-On some system configurations, the installation fails with XCode errors similar to those described in GitHub issues #12 and #28. In order to check if your system is affected, run
+On some system configurations, the installation fails with XCode errors similar to those described in GitHub issues [#12](https://github.com/ohueter/autokbisw/issues/12) and [#28](https://github.com/ohueter/autokbisw/issues/28). In order to check if your system is affected, run
 
 ```sh
 xcode-select --print-path
@@ -43,7 +43,7 @@ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
 to set the correct path and (hopefully) fix the compilation.
 
-### `autokbisw` doesn't work after installation.
+### autokbisw doesn't work after installation.
 
 If `autokbisw` isn't working after the first start of the service, try these solutions:
 
