@@ -63,7 +63,7 @@ It seems that some Logitech devices miss-identify as keyboard or mouse, although
 
 ### Can autokbisw be used with the `Automatically switch to a document's input source` option?
 
-`autokbisw` is not compatible with the `Automatically switch to a document's input source` system option (found under System Settings > Keyboard > Input sources > Edit…). If the setting is turned on, `autokbisw` might not work as expected.
+`autokbisw` is not compatible with the `Automatically switch to a document's input source` system option (found under System Settings > Keyboard > Input sources > Edit…). If the setting is turned on, `autokbisw` might not work as expected (see [#33](https://github.com/ohueter/autokbisw/issues/33)).
 
 ### Can autokbisw be used with Karabiner-Elements?
 
