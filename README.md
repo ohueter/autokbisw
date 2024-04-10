@@ -25,6 +25,33 @@ Please note that `autokbisw` is compiled from source by Homebrew, so a full inst
 
 You should notice that after the first keystroke on any of your keyboards, the input source automatically switches to the selected one. Note that the input source switch happens **after** the first keystroke, so you won't have the selected input source at this time.
 
+## Building from source
+
+Clone this repository, make sure you have a full Xcode.app installation, and run the following commands:
+
+```sh
+cd autokbisw
+swift build --configuration release
+```
+
+The output will provide the path to the built binary, likely `.build/release/autokbisw`. You can run it from the `release` directory as is.
+
+### Command-Line Arguments
+
+```
+USAGE: autokbisw [--verbose <verbosity>] [--location]
+
+OPTIONS:
+  -v, --verbose <verbosity>
+                          Print verbose output (1 = DEBUG, 2 = TRACE). (default: 0)
+  -l, --location          Use locationId to identify keyboards.
+                          Note that the locationId changes when you plug a keyboard in a different port.
+                          Therefore using the locationId in the keyboards identifiers means the configured
+                          language will be associated to a keyboard on a specific port.
+  -h, --help              Show help information.
+
+```
+
 ## FAQ & Common issues
 
 ### The installation fails with an XCode error.
@@ -68,33 +95,6 @@ It seems that some Logitech devices miss-identify as keyboard or mouse, although
 ### Can autokbisw be used with Karabiner-Elements?
 
 `autokbisw` is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes Karabiner appear as the system input device, and `autokbisw` can't detect the original input device. However, you can manually configure Karabiner to switch keyboard layouts based on device ID and other variables, it just won't be _fully_ automated -- see [this GH answer](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996).
-
-## Building from source
-
-Clone this repository, make sure you have a full Xcode.app installation, and run the following commands:
-
-```sh
-cd autokbisw
-swift build --configuration release
-```
-
-The output will provide the path to the built binary, likely `.build/release/autokbisw`. You can run it from the `release` directory as is.
-
-### Command-Line Arguments
-
-```
-USAGE: autokbisw [--verbose <verbosity>] [--location]
-
-OPTIONS:
-  -v, --verbose <verbosity>
-                          Print verbose output (1 = DEBUG, 2 = TRACE). (default: 0)
-  -l, --location          Use locationId to identify keyboards.
-                          Note that the locationId changes when you plug a keyboard in a different port.
-                          Therefore using the locationId in the keyboards identifiers means the configured
-                          language will be associated to a keyboard on a specific port.
-  -h, --help              Show help information.
-
-```
 
 ## Acknowledgements
 
