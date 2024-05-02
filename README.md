@@ -96,6 +96,15 @@ It seems that some Logitech devices miss-identify as keyboard or mouse, although
 
 `autokbisw` is not compatible with [Karabiner Elements](https://karabiner-elements.pqrs.org/), since it proxies keyboard events. That makes Karabiner appear as the system input device, and `autokbisw` can't detect the original input device. However, you can manually configure Karabiner to switch keyboard layouts based on device ID and other variables, it just won't be _fully_ automated -- see [this GH answer](https://github.com/pqrs-org/Karabiner-Elements/issues/2230#issuecomment-2043513996).
 
+### autokbisw is installed correctly but the background service does not changes the language?
+
+Try to unload and reload the plist and reboot (see [discussion for reference](https://github.com/ohueter/autokbisw/discussions/38#discussioncomment-9127439)):
+
+```sh
+launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.autokbisw.plist
+launchctl load ~/Library/LaunchAgents/homebrew.mxcl.autokbisw.plist
+```
+
 ## Acknowledgements
 
 This program was originally developed by [Jean Helou](https://github.com/jeantil/autokbisw) ([@jeantil](https://github.com/jeantil)).
