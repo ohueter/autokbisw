@@ -24,9 +24,12 @@ public let TRACE = 2
 public final class IOKeyEventMonitor {
     private let hidManager: IOHIDManager
     
-    fileprivate let MAPPINGS_DEFAULTS_KEY = "keyboardISMapping"
     fileprivate let notificationCenter: CFNotificationCenter
+    fileprivate let MAPPINGS_DEFAULTS_KEY = "keyboardISMapping"
     fileprivate var defaults: UserDefaults = .standard
+
+    fileprivate let MAPPING_ENABLED_KEY = "mappingEnabled"
+    internal var deviceEnabled: [String: Bool] = [:]
     
     internal var lastActiveKeyboard: String = ""
     internal var kb2is: [String: TISInputSource] = .init()
@@ -81,8 +84,6 @@ public final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
-            let conformsToMouse = IOHIDDeviceConformsTo(senderDevice, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Mouse))
-
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
             let product = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductKey as CFString) ??? "unknown"
@@ -96,20 +97,29 @@ public final class IOKeyEventMonitor {
                 : "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)]"
 
             if selfPtr.verbosity >= TRACE {
-                print("received event from keyboard \(keyboard) - \(locationId) - \(uniqueId)")
+                print("received event from device \(keyboard) - \(locationId) - \(uniqueId)")
             }
 
-            if conformsToMouse {
-                if selfPtr.verbosity >= TRACE {
-                    print("ignoring event as device is a mouse")
-                }
-                selfPtr.onKeyboardEvent(keyboard: "CONFORMS_TO_MOUSE")
-            } else {
-                selfPtr.onKeyboardEvent(keyboard: keyboard)
-            } 
+            selfPtr.onKeyboardEvent(keyboard: keyboard)
         }
 
         IOHIDManagerRegisterInputValueCallback(hidManager, myHIDKeyboardCallback, context)
+    }
+
+    public func enableDevice(_ keyboard: String) {
+        deviceEnabled[keyboard] = true
+        saveMappings()
+    }
+
+    public func disableDevice(_ keyboard: String) {
+        deviceEnabled[keyboard] = false
+        saveMappings()
+    }
+
+    public func printDevices() {
+        for (device, enabled) in deviceEnabled {
+            print("\(device): \(enabled ? "enabled" : "disabled")")
+        }
     }
 }
 
@@ -128,6 +138,12 @@ extension IOKeyEventMonitor {
     public func storeInputSource(keyboard: String) {
         let currentSource: TISInputSource = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
         kb2is[keyboard] = currentSource
+
+        // enable new device by default
+        if deviceEnabled[keyboard] == nil {
+            deviceEnabled[keyboard] = true
+        }
+
         saveMappings()
     }
 
@@ -136,8 +152,10 @@ extension IOKeyEventMonitor {
     }
 
     public func onKeyboardEvent(keyboard: String) {
-        guard keyboard != "CONFORMS_TO_MOUSE" else { return }
         guard lastActiveKeyboard != keyboard else { return }
+
+        let isEnabled = deviceEnabled[keyboard] ?? true
+        guard isEnabled else { return }
 
         restoreInputSource(keyboard: keyboard)
         lastActiveKeyboard = keyboard
@@ -164,11 +182,16 @@ extension IOKeyEventMonitor {
                 kb2is[keyboardId] = inputSourcesById[String(describing: inputSourceId)]
             }
         }
+
+        if let enabledMappings = defaults.dictionary(forKey: MAPPING_ENABLED_KEY) as? [String: Bool] {
+            deviceEnabled = enabledMappings
+        }
     }
 
     func saveMappings() {
         let mappings = kb2is.mapValues(is2Id)
         defaults.set(mappings, forKey: MAPPINGS_DEFAULTS_KEY)
+        defaults.set(deviceEnabled, forKey: MAPPING_ENABLED_KEY)
     }
 
     private func is2Id(_ inputSource: TISInputSource) -> String? {
