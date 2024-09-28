@@ -84,6 +84,8 @@ public final class IOKeyEventMonitor {
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(context!).takeUnretainedValue()
             let senderDevice = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
 
+            let conformsToKeyboard = selfPtr.deviceConformsToKeyboard(senderDevice)
+
             let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
             let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
             let product = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductKey as CFString) ??? "unknown"
@@ -100,33 +102,36 @@ public final class IOKeyEventMonitor {
                 print("received event from device \(keyboard) - \(locationId) - \(uniqueId)")
             }
 
-            selfPtr.onKeyboardEvent(keyboard: keyboard)
+            selfPtr.onKeyboardEvent(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         }
 
         IOHIDManagerRegisterInputValueCallback(hidManager, myHIDKeyboardCallback, context)
     }
 
+    private func deviceConformsToKeyboard(_ device: IOHIDDevice) -> Bool {
+        return IOHIDDeviceConformsTo(device, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard))
+    }
 }
 
 extension IOKeyEventMonitor {
-    public func restoreInputSource(keyboard: String) {
+    public func restoreInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
         if let targetIs = kb2is[keyboard] {
             if verbosity >= DEBUG {
                 print("set input source to \(targetIs) for keyboard \(keyboard)")
             }
             TISSelectInputSource(targetIs)
         } else {
-            storeInputSource(keyboard: keyboard)
+            storeInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         }
     }
 
-    public func storeInputSource(keyboard: String) {
+    public func storeInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
         let currentSource: TISInputSource = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
         kb2is[keyboard] = currentSource
 
-        // enable new device by default
-        if deviceEnabled[keyboard] == nil {
-            deviceEnabled[keyboard] = true
+        // Only set a default value for deviceEnabled if conformsToKeyboard is provided
+        if let isKeyboard = conformsToKeyboard, deviceEnabled[keyboard] == nil {
+            deviceEnabled[keyboard] = isKeyboard
         }
 
         saveMappings()
@@ -136,13 +141,13 @@ extension IOKeyEventMonitor {
         storeInputSource(keyboard: lastActiveKeyboard)
     }
 
-    public func onKeyboardEvent(keyboard: String) {
+    public func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
         guard lastActiveKeyboard != keyboard else { return }
 
         let isEnabled = deviceEnabled[keyboard] ?? true
         guard isEnabled else { return }
 
-        restoreInputSource(keyboard: keyboard)
+        restoreInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         lastActiveKeyboard = keyboard
     }
 
