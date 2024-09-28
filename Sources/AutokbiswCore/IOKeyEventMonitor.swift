@@ -18,17 +18,24 @@ import IOKit
 import IOKit.hid
 import IOKit.usb
 
-internal final class IOKeyEventMonitor {
+public let DEBUG = 1
+public let TRACE = 2
+
+public final class IOKeyEventMonitor {
     private let hidManager: IOHIDManager
+    
     fileprivate let MAPPINGS_DEFAULTS_KEY = "keyboardISMapping"
     fileprivate let notificationCenter: CFNotificationCenter
-    fileprivate var lastActiveKeyboard: String = ""
-    fileprivate var kb2is: [String: TISInputSource] = .init()
     fileprivate var defaults: UserDefaults = .standard
-    fileprivate var useLocation: Bool
-    fileprivate var verbosity: Int
+    
+    internal var lastActiveKeyboard: String = ""
+    internal var kb2is: [String: TISInputSource] = .init()
 
-    init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int) {
+    fileprivate var useLocation: Bool
+    // fileprivate var verbosity: Int
+    public var verbosity: Int
+
+    public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int) {
         self.useLocation = useLocation
         self.verbosity = verbosity
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -45,7 +52,7 @@ internal final class IOKeyEventMonitor {
         CFNotificationCenterRemoveObserver(notificationCenter, context, CFNotificationName(kTISNotifySelectedKeyboardInputSourceChanged), nil)
     }
 
-    func start() {
+    public func start() {
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
         observeIputSourceChangedNotification(context: context)
@@ -107,7 +114,7 @@ internal final class IOKeyEventMonitor {
 }
 
 extension IOKeyEventMonitor {
-    func restoreInputSource(keyboard: String) {
+    public func restoreInputSource(keyboard: String) {
         if let targetIs = kb2is[keyboard] {
             if verbosity >= DEBUG {
                 print("set input source to \(targetIs) for keyboard \(keyboard)")
@@ -118,17 +125,17 @@ extension IOKeyEventMonitor {
         }
     }
 
-    func storeInputSource(keyboard: String) {
+    public func storeInputSource(keyboard: String) {
         let currentSource: TISInputSource = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
         kb2is[keyboard] = currentSource
         saveMappings()
     }
 
-    func onInputSourceChanged() {
+    public func onInputSourceChanged() {
         storeInputSource(keyboard: lastActiveKeyboard)
     }
 
-    func onKeyboardEvent(keyboard: String) {
+    public func onKeyboardEvent(keyboard: String) {
         guard keyboard != "CONFORMS_TO_MOUSE" else { return }
         guard lastActiveKeyboard != keyboard else { return }
 

@@ -14,9 +14,7 @@
 
 import ArgumentParser
 import Foundation
-
-let DEBUG = 1
-let TRACE = 2
+import AutokbiswCore
 
 struct Autokbisw: ParsableCommand {
     static var configuration = CommandConfiguration(
