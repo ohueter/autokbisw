@@ -106,21 +106,6 @@ public final class IOKeyEventMonitor {
         IOHIDManagerRegisterInputValueCallback(hidManager, myHIDKeyboardCallback, context)
     }
 
-    public func enableDevice(_ keyboard: String) {
-        deviceEnabled[keyboard] = true
-        saveMappings()
-    }
-
-    public func disableDevice(_ keyboard: String) {
-        deviceEnabled[keyboard] = false
-        saveMappings()
-    }
-
-    public func printDevices() {
-        for (device, enabled) in deviceEnabled {
-            print("\(device): \(enabled ? "enabled" : "disabled")")
-        }
-    }
 }
 
 extension IOKeyEventMonitor {
@@ -192,6 +177,29 @@ extension IOKeyEventMonitor {
         let mappings = kb2is.mapValues(is2Id)
         defaults.set(mappings, forKey: MAPPINGS_DEFAULTS_KEY)
         defaults.set(deviceEnabled, forKey: MAPPING_ENABLED_KEY)
+    }
+
+    public func enableDevice(_ keyboard: String) {
+        deviceEnabled[keyboard] = true
+        saveMappings()
+    }
+
+    public func disableDevice(_ keyboard: String) {
+        deviceEnabled[keyboard] = false
+        saveMappings()
+    }
+
+    public func getDevicesString() -> String {
+        return deviceEnabled.map { "\($0.key): \($0.value ? "enabled" : "disabled")" }.joined(separator: "\n")
+    }
+
+    public func clearAllSettings() {
+        kb2is.removeAll()
+        deviceEnabled.removeAll()
+        lastActiveKeyboard = ""
+        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
+        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
+        defaults.synchronize()
     }
 
     private func is2Id(_ inputSource: TISInputSource) -> String? {

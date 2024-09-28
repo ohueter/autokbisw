@@ -19,7 +19,7 @@ import AutokbiswCore
 struct Autokbisw: ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Automatic keyboard/input source switching for macOS.",
-        subcommands: [Run.self, Enable.self, Disable.self, List.self]
+        subcommands: [Run.self, Enable.self, Disable.self, List.self, Clear.self]
     )
 
     struct Run: ParsableCommand {
@@ -94,7 +94,20 @@ struct Autokbisw: ParsableCommand {
 
         func run() throws {
             let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
-            monitor?.printDevices()
+            print(monitor?.getDevicesString() ?? "")
+        }
+    }
+
+    struct Clear: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            commandName: "clear",
+            abstract: "Clear all stored mappings and device settings."
+        )
+
+        func run() throws {
+            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
+            monitor?.clearAllSettings()
+            print("All stored settings have been cleared.")
         }
     }
 }
