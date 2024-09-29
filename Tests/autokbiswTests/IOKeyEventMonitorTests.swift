@@ -2,19 +2,24 @@ import XCTest
 @testable import AutokbiswCore
 
 class IOKeyEventMonitorTests: XCTestCase {
-    
     var monitor: IOKeyEventMonitor!
-    
+    var mockUserDefaults: UserDefaults!
+
     override func setUp() {
         super.setUp()
+
+        mockUserDefaults = UserDefaults(suiteName: #file)  // Create an in-memory UserDefaults
+        mockUserDefaults.removePersistentDomain(forName: #file)  // Ensure it's empty
+        
         // Initialize the monitor before each test
-        monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: true, verbosity: 0)
+        monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: true, verbosity: 0, userDefaults: mockUserDefaults)
     }
     
     override func tearDown() {
         // Clean up after each test
-        monitor.clearAllSettings()
+        mockUserDefaults.removePersistentDomain(forName: #file)
         monitor = nil
+        mockUserDefaults = nil
         super.tearDown()
     }
     

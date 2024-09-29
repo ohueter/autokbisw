@@ -38,9 +38,11 @@ public final class IOKeyEventMonitor {
     fileprivate var useLocation: Bool
     public var verbosity: Int
 
-    public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int) {
+    public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int, userDefaults: UserDefaults = .standard) {
         self.useLocation = useLocation
         self.verbosity = verbosity
+        self.defaults = userDefaults
+        
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         notificationCenter = CFNotificationCenterGetDistributedCenter()
         let deviceMatch: CFMutableDictionary = [kIOHIDDeviceUsageKey: usage, kIOHIDDeviceUsagePageKey: usagePage] as NSMutableDictionary
