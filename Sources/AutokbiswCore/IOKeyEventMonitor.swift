@@ -23,19 +23,19 @@ public let TRACE = 2
 
 public final class IOKeyEventMonitor {
     private let hidManager: IOHIDManager
-    
     fileprivate let notificationCenter: CFNotificationCenter
+
     fileprivate let MAPPINGS_DEFAULTS_KEY = "keyboardISMapping"
     fileprivate var defaults: UserDefaults = .standard
 
     fileprivate let MAPPING_ENABLED_KEY = "mappingEnabled"
     internal var deviceEnabled: [String: Bool] = [:]
     
-    internal var lastActiveKeyboard: String = ""
+    fileprivate let assignmentLock = NSLock()
+    internal var lastActiveKeyboard: String? = nil
     internal var kb2is: [String: TISInputSource] = .init()
 
     fileprivate var useLocation: Bool
-    // fileprivate var verbosity: Int
     public var verbosity: Int
 
     public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int) {
@@ -114,15 +114,21 @@ public final class IOKeyEventMonitor {
 }
 
 extension IOKeyEventMonitor {
-    public func restoreInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
-        if let targetIs = kb2is[keyboard] {
-            if verbosity >= DEBUG {
-                print("set input source to \(targetIs) for keyboard \(keyboard)")
+    public func restoreInputSource(keyboard: String) {
+        guard let targetIs = kb2is[keyboard] else {
+            if verbosity >= TRACE {
+                print("No previous mapping saved for \(keyboard), awaiting the user to select the right one")
             }
-            TISSelectInputSource(targetIs)
-        } else {
-            storeInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
+
+            return
         }
+
+        if verbosity >= DEBUG {
+            print("Setting input source for keyboard \(keyboard):\n\t\(targetIs)")
+        }
+
+        // This will trigger onInputSourceChanged()
+        TISSelectInputSource(targetIs)
     }
 
     public func storeInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
@@ -138,17 +144,44 @@ extension IOKeyEventMonitor {
     }
 
     public func onInputSourceChanged() {
-        storeInputSource(keyboard: lastActiveKeyboard)
+        assignmentLock.lock()
+        // lastActiveKeyboard can be nil only if the language is changed between
+        // program start and the first keypress, so we can ignore this edge case
+        if let lastActiveKeyboard = lastActiveKeyboard {
+            storeInputSource(keyboard: lastActiveKeyboard)
+        }
+        assignmentLock.unlock()
     }
 
     public func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
         guard lastActiveKeyboard != keyboard else { return }
 
-        let isEnabled = deviceEnabled[keyboard] ?? true
-        guard isEnabled else { return }
+        if verbosity >= TRACE {
+            print("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
+        }
 
-        restoreInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
+        let isEnabled = deviceEnabled[keyboard] ?? true
+        guard isEnabled else { 
+            if verbosity >= DEBUG {
+                print("change: ignoring event from keyboard \(keyboard) because device is disabled")
+            }
+
+            return
+        }
+
+        assignmentLock.lock()
+        if lastActiveKeyboard == nil {
+            // It's the first keyboard event from this keyboard since starting the program.
+            // Persist settings, assuming the current setup is what the user wants to use
+            // for the currently typing keyboard.
+            storeInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
+        } else {
+            // Keyboard is different from the previously used keyboard, restore settings.
+            restoreInputSource(keyboard: keyboard)
+        }
+
         lastActiveKeyboard = keyboard
+        assignmentLock.unlock()
     }
 
     func loadMappings() {
@@ -201,7 +234,7 @@ extension IOKeyEventMonitor {
     public func clearAllSettings() {
         kb2is.removeAll()
         deviceEnabled.removeAll()
-        lastActiveKeyboard = ""
+        lastActiveKeyboard = nil
         defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
         defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
         defaults.synchronize()
