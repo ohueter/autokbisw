@@ -19,41 +19,34 @@ import AutokbiswCore
 struct Autokbisw: ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Automatic keyboard/input source switching for macOS.",
-        subcommands: [Run.self, Enable.self, Disable.self, List.self, Clear.self]
+        subcommands: [Enable.self, Disable.self, List.self, Clear.self]
     )
 
-    struct Run: ParsableCommand {
-        static var configuration = CommandConfiguration(
-            commandName: "run",
-            abstract: "Run the automatic keyboard input source switcher"
+    @Option(
+        name: .shortAndLong,
+        help: ArgumentHelp(
+            "Print verbose output (1 = DEBUG, 2 = TRACE).",
+            valueName: "verbosity"
         )
+    )
+    var verbose = 0
 
-        @Option(
-            name: .shortAndLong,
-            help: ArgumentHelp(
-                "Print verbose output (1 = DEBUG, 2 = TRACE).",
-                valueName: "verbosity"
-            )
+    @Flag(
+        name: .shortAndLong,
+        help: ArgumentHelp(
+            "Use locationId to identify keyboards.",
+            discussion: "Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards identifiers means the configured language will be associated to a keyboard on a specific port."
         )
-        var verbose = 0
+    )
+    var location = false
 
-        @Flag(
-            name: .shortAndLong,
-            help: ArgumentHelp(
-                "Use locationId to identify keyboards.",
-                discussion: "Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards identifiers means the configured language will be associated to a keyboard on a specific port."
-            )
-        )
-        var location = false
-
-        mutating func run() throws {
-            if verbose > 0 {
-                print("Starting with useLocation: \(location) - verbosity: \(verbose)")
-            }
-            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: location, verbosity: verbose)
-            monitor?.start()
-            CFRunLoopRun()
+    mutating func run() throws {
+        if verbose > 0 {
+            print("Starting with useLocation: \(location) - verbosity: \(verbose)")
         }
+        let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: location, verbosity: verbose)
+        monitor?.start()
+        CFRunLoopRun()
     }
 
     struct Enable: ParsableCommand {
