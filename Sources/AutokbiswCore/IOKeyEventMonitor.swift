@@ -42,7 +42,7 @@ public final class IOKeyEventMonitor {
         self.useLocation = useLocation
         self.verbosity = verbosity
         self.defaults = userDefaults
-        
+
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         notificationCenter = CFNotificationCenterGetDistributedCenter()
         let deviceMatch: CFMutableDictionary = [kIOHIDDeviceUsageKey: usage, kIOHIDDeviceUsagePageKey: usagePage] as NSMutableDictionary
@@ -233,7 +233,19 @@ extension IOKeyEventMonitor {
     }
 
     public func getDevicesString() -> String {
-        return deviceEnabled.map { "\($0.key): \($0.value ? "enabled" : "disabled")" }.joined(separator: "\n")
+        return deviceEnabled.map { keyboard, isEnabled -> String in
+            let status = isEnabled ? "enabled" : "disabled"
+            var layoutInfo = "no layout stored"
+            
+            if let source = kb2is[keyboard] {
+                let name = TISGetInputSourceProperty(source, kTISPropertyLocalizedName)
+                let localizedName = unmanagedStringToString(name) ?? "unknown"
+                let id = is2Id(source) ?? "unknown"
+                layoutInfo = "\(localizedName) (\(id))"
+            }
+            
+            return "\(keyboard): \(status) - \(layoutInfo)"
+        }.joined(separator: "\n")
     }
 
     public func clearAllSettings() {
