@@ -233,7 +233,9 @@ extension IOKeyEventMonitor {
     }
 
     public func getDevicesString() -> String {
-        return deviceEnabled.map { keyboard, isEnabled -> String in
+        return deviceEnabled.enumerated().map { index, entry -> String in
+            let (keyboard, isEnabled) = entry
+            let number = index + 1
             let status = isEnabled ? "enabled" : "disabled"
             var layoutInfo = "no layout stored"
             
@@ -244,7 +246,7 @@ extension IOKeyEventMonitor {
                 layoutInfo = "\(localizedName) (\(id))"
             }
             
-            return "\(keyboard): \(status) - \(layoutInfo)"
+            return "\(number). \(keyboard): \(status) - \(layoutInfo)"
         }.joined(separator: "\n")
     }
 
