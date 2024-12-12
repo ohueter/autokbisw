@@ -17,6 +17,18 @@ import Foundation
 import AutokbiswCore
 
 struct Autokbisw: ParsableCommand {
+    private static let defaultUsagePage: Int = 0x01
+    private static let defaultUsage: Int = 6
+
+    private static func createMonitor(useLocation: Bool = false, verbosity: Int = 0) -> IOKeyEventMonitor? {
+        IOKeyEventMonitor(
+            usagePage: defaultUsagePage,
+            usage: defaultUsage,
+            useLocation: useLocation,
+            verbosity: verbosity
+        )
+    }
+
     static var configuration = CommandConfiguration(
         abstract: "Automatic keyboard/input source switching for macOS.",
         subcommands: [Enable.self, Disable.self, List.self, Clear.self]
@@ -44,7 +56,7 @@ struct Autokbisw: ParsableCommand {
         if verbose > 0 {
             print("Starting with useLocation: \(location) - verbosity: \(verbose)")
         }
-        let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: location, verbosity: verbose)
+        let monitor = Autokbisw.createMonitor(useLocation: location, verbosity: verbose)
         monitor?.start()
         CFRunLoopRun()
     }
@@ -59,7 +71,7 @@ struct Autokbisw: ParsableCommand {
         var keyboard: String
 
         func run() throws {
-            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
+            let monitor = Autokbisw.createMonitor()
             monitor?.enableDevice(keyboard)
         }
     }
@@ -74,7 +86,7 @@ struct Autokbisw: ParsableCommand {
         var keyboard: String
 
         func run() throws {
-            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
+            let monitor = Autokbisw.createMonitor()
             monitor?.disableDevice(keyboard)
         }
     }
@@ -86,7 +98,7 @@ struct Autokbisw: ParsableCommand {
         )
 
         func run() throws {
-            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
+            let monitor = Autokbisw.createMonitor()
             print(monitor?.getDevicesString() ?? "")
         }
     }
@@ -98,7 +110,7 @@ struct Autokbisw: ParsableCommand {
         )
 
         func run() throws {
-            let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: false, verbosity: 0)
+            let monitor = Autokbisw.createMonitor()
             monitor?.clearAllSettings()
             print("All stored settings have been cleared.")
         }
