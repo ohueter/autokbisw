@@ -126,7 +126,7 @@ extension IOKeyEventMonitor {
         }
 
         if verbosity >= DEBUG {
-            print("Setting input source for keyboard \(keyboard):\n\t\(targetIs)")
+            print("Setting input source for keyboard \(keyboard): \(targetIs)")
         }
 
         // This will trigger onInputSourceChanged()
