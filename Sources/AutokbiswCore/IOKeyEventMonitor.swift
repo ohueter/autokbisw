@@ -101,7 +101,7 @@ public final class IOKeyEventMonitor {
                 : "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)]"
 
             if selfPtr.verbosity >= TRACE {
-                print("received event from device \(keyboard) - \(locationId) - \(uniqueId)")
+                print("received event from device \(keyboard) - \(locationId) - \(uniqueId) - conformsToKeyboard: \(conformsToKeyboard)")
             }
 
             selfPtr.onKeyboardEvent(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
