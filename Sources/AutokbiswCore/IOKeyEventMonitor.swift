@@ -139,6 +139,9 @@ extension IOKeyEventMonitor {
 
         // Only set a default value for deviceEnabled if conformsToKeyboard is provided
         if let isKeyboard = conformsToKeyboard, deviceEnabled[keyboard] == nil {
+            if verbosity >= DEBUG {
+                print("Enabling device by default because it is recognized as a keyboard")
+            }
             deviceEnabled[keyboard] = isKeyboard
         }
 
