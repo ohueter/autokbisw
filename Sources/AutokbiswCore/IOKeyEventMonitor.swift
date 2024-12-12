@@ -232,22 +232,49 @@ extension IOKeyEventMonitor {
         saveMappings()
     }
 
+    public func enableDeviceByNumber(_ number: Int) {
+        let devices = Array(deviceEnabled.keys).sorted()
+        guard number > 0 && number <= devices.count else {
+            print("Invalid device number")
+            return
+        }
+        let keyboard = devices[number - 1]
+        deviceEnabled[keyboard] = true
+        saveMappings()
+    }
+
+    public func disableDeviceByNumber(_ number: Int) {
+        let devices = Array(deviceEnabled.keys).sorted()
+        guard number > 0 && number <= devices.count else {
+            print("Invalid device number")
+            return
+        }
+        let keyboard = devices[number - 1]
+        deviceEnabled[keyboard] = false
+        saveMappings()
+    }
+
+
     public func getDevicesString() -> String {
-        return deviceEnabled.enumerated().map { index, entry -> String in
-            let (keyboard, isEnabled) = entry
-            let number = index + 1
-            let status = isEnabled ? "enabled" : "disabled"
-            var layoutInfo = "no layout stored"
-            
-            if let source = kb2is[keyboard] {
-                let name = TISGetInputSourceProperty(source, kTISPropertyLocalizedName)
-                let localizedName = unmanagedStringToString(name) ?? "unknown"
-                let id = is2Id(source) ?? "unknown"
-                layoutInfo = "\(localizedName) (\(id))"
+        return deviceEnabled
+            .sorted { $0.key < $1.key }
+            .enumerated()
+            .map { index, entry -> String in
+                let (keyboard, isEnabled) = entry
+                let number = index + 1
+                let status = isEnabled ? "enabled" : "disabled"
+                var layoutInfo = "no layout stored"
+                
+                if let source = kb2is[keyboard] {
+                    let name = TISGetInputSourceProperty(source, kTISPropertyLocalizedName)
+                    let localizedName = unmanagedStringToString(name) ?? "unknown"
+                    let id = is2Id(source) ?? "unknown"
+                    layoutInfo = "\(localizedName) (\(id))"
+                }
+                
+                return "\(number). \(keyboard): \(status) - \(layoutInfo)"
             }
-            
-            return "\(number). \(keyboard): \(status) - \(layoutInfo)"
-        }.joined(separator: "\n")
+            .joined(separator: "\n")
     }
 
     public func clearAllSettings() {

@@ -127,4 +127,63 @@ class IOKeyEventMonitorTests: XCTestCase {
         XCTAssertTrue(output.contains("\(testKeyboard1): enabled"), "Output should show TestKeyboard1 as enabled")
         XCTAssertTrue(output.contains("\(testKeyboard2): disabled"), "Output should show TestKeyboard2 as disabled")
     }
+
+    func testEnableDeviceByNumber() {
+        let testKeyboard1 = "ATestKeyboard1-[1-2-TestManufacturer-123-456]"
+        let testKeyboard2 = "BTestKeyboard2-[3-4-TestManufacturer-789-012]"
+        
+        // Setup initial state
+        monitor.enableDevice(testKeyboard1)
+        monitor.enableDevice(testKeyboard2)
+        monitor.disableDevice(testKeyboard2)  // Should be: keyboard1 enabled, keyboard2 disabled
+        
+        // Enable device #2 (testKeyboard2)
+        monitor.enableDeviceByNumber(2)
+        
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard2] ?? false, "Device #2 should be enabled")
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard1] ?? false, "Device #1 should remain enabled")
+    }
+
+    func testDisableDeviceByNumber() {
+        let testKeyboard1 = "ATestKeyboard1-[1-2-TestManufacturer-123-456]"
+        let testKeyboard2 = "BTestKeyboard2-[3-4-TestManufacturer-789-012]"
+        
+        // Setup initial state
+        monitor.enableDevice(testKeyboard1)
+        monitor.enableDevice(testKeyboard2)
+        
+        // Disable device #1 (testKeyboard1)
+        monitor.disableDeviceByNumber(1)
+        
+        XCTAssertFalse(monitor.deviceEnabled[testKeyboard1] ?? true, "Device #1 should be disabled")
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard2] ?? false, "Device #2 should remain enabled")
+    }
+
+    func testDeviceNumbering() {
+        let testKeyboard1 = "XTestKeyboard1-[1-2-TestManufacturer-123-456]"
+        let testKeyboard2 = "BTestKeyboard2-[3-4-TestManufacturer-789-012]"
+        
+        monitor.enableDevice(testKeyboard1)
+        monitor.enableDevice(testKeyboard2)
+        
+        let output = monitor.getDevicesString()
+        let lines = output.split(separator: "\n")
+        
+        XCTAssertTrue(lines[0].starts(with: "1. BTestKeyboard2"), "Second device should be numbered 1")
+        XCTAssertTrue(lines[1].starts(with: "2. XTestKeyboard1"), "First device should be numbered 2")
+    }
+
+    func testInvalidDeviceNumber() {
+        let testKeyboard = "TestKeyboard-[1-2-TestManufacturer-123-456]"
+        monitor.enableDevice(testKeyboard)
+        
+        // Test invalid numbers
+        monitor.enableDeviceByNumber(0)  // Too low
+        monitor.enableDeviceByNumber(2)  // Too high
+        monitor.disableDeviceByNumber(0)  // Too low
+        monitor.disableDeviceByNumber(2)  // Too high
+        
+        // State should remain unchanged
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard] ?? false, "Device state should not change with invalid number")
+    }
 }

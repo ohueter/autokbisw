@@ -64,30 +64,38 @@ struct Autokbisw: ParsableCommand {
     struct Enable: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "enable",
-            abstract: "Enable input source switching for <device identifier>."
+            abstract: "Enable input source switching for <device number or identifier>."
         )
 
-        @Argument(help: "The device identifier to enable")
+        @Argument(help: "The device identifier or number (from list command) to enable")
         var keyboard: String
 
         func run() throws {
             let monitor = Autokbisw.createMonitor()
-            monitor?.enableDevice(keyboard)
+            if let number = Int(keyboard) {
+                monitor?.enableDeviceByNumber(number)
+            } else {
+                monitor?.enableDevice(keyboard)
+            }
         }
     }
 
     struct Disable: ParsableCommand {
         static var configuration = CommandConfiguration(
             commandName: "disable",
-            abstract: "Disable input source switching for <device identifier>."
+            abstract: "Disable input source switching for <device number or identifier>."
         )
 
-        @Argument(help: "The device identifier to disable")
+        @Argument(help: "The device identifier or number (from list command) to disable")
         var keyboard: String
 
         func run() throws {
             let monitor = Autokbisw.createMonitor()
-            monitor?.disableDevice(keyboard)
+            if let number = Int(keyboard) {
+                monitor?.disableDeviceByNumber(number)
+            } else {
+                monitor?.disableDevice(keyboard)
+            }
         }
     }
 
