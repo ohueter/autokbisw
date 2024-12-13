@@ -115,6 +115,8 @@ public final class IOKeyEventMonitor {
     }
 }
 
+
+// MARK: - Input Source Management
 extension IOKeyEventMonitor {
     public func restoreInputSource(keyboard: String) {
         guard let targetIs = kb2is[keyboard] else {
@@ -188,7 +190,10 @@ extension IOKeyEventMonitor {
         lastActiveKeyboard = keyboard
         assignmentLock.unlock()
     }
+}
 
+// MARK: - Persistence
+extension IOKeyEventMonitor {
     func loadMappings() {
         let selectableIsProperties = [
             kTISPropertyInputSourceIsEnableCapable: true,
@@ -222,6 +227,18 @@ extension IOKeyEventMonitor {
         defaults.set(deviceEnabled, forKey: MAPPING_ENABLED_KEY)
     }
 
+    public func clearAllSettings() {
+        kb2is.removeAll()
+        deviceEnabled.removeAll()
+        lastActiveKeyboard = nil
+        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
+        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
+        defaults.synchronize()
+    }
+}
+
+// MARK: - Device Management
+extension IOKeyEventMonitor {
     public func enableDevice(_ keyboard: String) {
         deviceEnabled[keyboard] = true
         saveMappings()
@@ -254,7 +271,6 @@ extension IOKeyEventMonitor {
         saveMappings()
     }
 
-
     public func getDevicesString() -> String {
         return deviceEnabled
             .sorted { $0.key < $1.key }
@@ -276,16 +292,10 @@ extension IOKeyEventMonitor {
             }
             .joined(separator: "\n")
     }
+}
 
-    public func clearAllSettings() {
-        kb2is.removeAll()
-        deviceEnabled.removeAll()
-        lastActiveKeyboard = nil
-        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
-        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
-        defaults.synchronize()
-    }
-
+// MARK: - Utilities
+extension IOKeyEventMonitor {
     private func is2Id(_ inputSource: TISInputSource) -> String? {
         return unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID))!
     }
