@@ -54,9 +54,9 @@ jobs:
           overwrite: true
 
       - name: Upload checksum artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: checksums
+          name: checksums-${{ matrix.os_name }}-${{ matrix.arch }}
           path: .build/release/SHA256SUM
 
   publish-checksums:
@@ -64,14 +64,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all checksums
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: checksums
           path: checksums
 
       - name: Combine checksums
         run: |
-          cat checksums/SHA256SUM* > SHA256SUMS
+          cat checksums/**/SHA256SUM > SHA256SUMS
+          find checksums -type f -name "SHA256SUM" -exec cat {} + > SHA256SUMS
           echo "Combined checksums:"
           cat SHA256SUMS
 
