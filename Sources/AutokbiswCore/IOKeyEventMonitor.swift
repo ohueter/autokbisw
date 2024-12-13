@@ -88,13 +88,13 @@ public final class IOKeyEventMonitor {
 
             let conformsToKeyboard = selfPtr.deviceConformsToKeyboard(senderDevice)
 
-            let vendorId = IOHIDDeviceGetProperty(senderDevice, kIOHIDVendorIDKey as CFString) ??? "unknown"
-            let productId = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductIDKey as CFString) ??? "unknown"
-            let product = IOHIDDeviceGetProperty(senderDevice, kIOHIDProductKey as CFString) ??? "unknown"
-            let manufacturer = IOHIDDeviceGetProperty(senderDevice, kIOHIDManufacturerKey as CFString) ??? "unknown"
-            let serialNumber = IOHIDDeviceGetProperty(senderDevice, kIOHIDSerialNumberKey as CFString) ??? "unknown"
-            let locationId = IOHIDDeviceGetProperty(senderDevice, kIOHIDLocationIDKey as CFString) ??? "unknown"
-            let uniqueId = IOHIDDeviceGetProperty(senderDevice, kIOHIDUniqueIDKey as CFString) ??? "unknown"
+            let vendorId = selfPtr.deviceProperty(senderDevice, kIOHIDVendorIDKey)
+            let productId = selfPtr.deviceProperty(senderDevice, kIOHIDProductIDKey)
+            let product = selfPtr.deviceProperty(senderDevice, kIOHIDProductKey)
+            let manufacturer = selfPtr.deviceProperty(senderDevice, kIOHIDManufacturerKey)
+            let serialNumber = selfPtr.deviceProperty(senderDevice, kIOHIDSerialNumberKey)
+            let locationId = selfPtr.deviceProperty(senderDevice, kIOHIDLocationIDKey)
+            let uniqueId = selfPtr.deviceProperty(senderDevice, kIOHIDUniqueIDKey)
 
             let keyboard = selfPtr.useLocation
                 ? "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)-\(locationId)]"
@@ -110,11 +110,17 @@ public final class IOKeyEventMonitor {
         IOHIDManagerRegisterInputValueCallback(hidManager, myHIDKeyboardCallback, context)
     }
 
+    private func deviceProperty(_ device: IOHIDDevice, _ key: String) -> String {
+        guard let value = IOHIDDeviceGetProperty(device, key as CFString) else {
+            return "unknown"
+        }
+        return String(describing: value)
+    }
+
     private func deviceConformsToKeyboard(_ device: IOHIDDevice) -> Bool {
         return IOHIDDeviceConformsTo(device, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard))
     }
 }
-
 
 // MARK: - Input Source Management
 extension IOKeyEventMonitor {
@@ -312,12 +318,4 @@ extension IOKeyEventMonitor {
             return nil
         }
     }
-}
-
-// Nicer string interpolation of optional strings, see: https://oleb.net/blog/2016/12/optionals-string-interpolation/
-
-infix operator ???: NilCoalescingPrecedence
-
-public func ??? <T>(optional: T?, defaultValue: @autoclosure () -> String) -> String {
-    return optional.map { String(describing: $0) } ?? defaultValue()
 }
