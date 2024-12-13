@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import ArgumentParser
-import Foundation
 import AutokbiswCore
+import Foundation
 
 struct Autokbisw: ParsableCommand {
     private static let defaultUsagePage: Int = 0x01

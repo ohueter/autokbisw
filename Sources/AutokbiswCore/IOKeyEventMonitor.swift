@@ -29,11 +29,11 @@ public final class IOKeyEventMonitor {
     fileprivate var defaults: UserDefaults = .standard
 
     fileprivate let MAPPING_ENABLED_KEY = "mappingEnabled"
-    internal var deviceEnabled: [String: Bool] = [:]
-    
+    var deviceEnabled: [String: Bool] = [:]
+
     fileprivate let assignmentLock = NSLock()
-    internal var lastActiveKeyboard: String? = nil
-    internal var kb2is: [String: TISInputSource] = .init()
+    var lastActiveKeyboard: String?
+    var kb2is: [String: TISInputSource] = .init()
 
     fileprivate var useLocation: Bool
     public var verbosity: Int
@@ -41,7 +41,7 @@ public final class IOKeyEventMonitor {
     public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int, userDefaults: UserDefaults = .standard) {
         self.useLocation = useLocation
         self.verbosity = verbosity
-        self.defaults = userDefaults
+        defaults = userDefaults
 
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         notificationCenter = CFNotificationCenterGetDistributedCenter()
@@ -123,8 +123,9 @@ public final class IOKeyEventMonitor {
 }
 
 // MARK: - Input Source Management
-extension IOKeyEventMonitor {
-    public func restoreInputSource(keyboard: String) {
+
+public extension IOKeyEventMonitor {
+    func restoreInputSource(keyboard: String) {
         guard let targetIs = kb2is[keyboard] else {
             if verbosity >= TRACE {
                 print("No previous mapping saved for \(keyboard), awaiting the user to select the right one")
@@ -141,7 +142,7 @@ extension IOKeyEventMonitor {
         TISSelectInputSource(targetIs)
     }
 
-    public func storeInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
+    func storeInputSource(keyboard: String, conformsToKeyboard: Bool? = nil) {
         let currentSource: TISInputSource = TISCopyCurrentKeyboardInputSource().takeUnretainedValue()
         kb2is[keyboard] = currentSource
 
@@ -156,7 +157,7 @@ extension IOKeyEventMonitor {
         saveMappings()
     }
 
-    public func onInputSourceChanged() {
+    func onInputSourceChanged() {
         assignmentLock.lock()
         // lastActiveKeyboard can be nil only if the language is changed between
         // program start and the first keypress, so we can ignore this edge case
@@ -166,7 +167,7 @@ extension IOKeyEventMonitor {
         assignmentLock.unlock()
     }
 
-    public func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
+    func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
         guard lastActiveKeyboard != keyboard else { return }
 
         if verbosity >= TRACE {
@@ -174,7 +175,7 @@ extension IOKeyEventMonitor {
         }
 
         let isEnabled = deviceEnabled[keyboard] ?? true
-        guard isEnabled else { 
+        guard isEnabled else {
             if verbosity >= DEBUG {
                 print("change: ignoring event from keyboard \(keyboard) because device is disabled")
             }
@@ -199,6 +200,7 @@ extension IOKeyEventMonitor {
 }
 
 // MARK: - Persistence
+
 extension IOKeyEventMonitor {
     func loadMappings() {
         let selectableIsProperties = [
@@ -209,11 +211,11 @@ extension IOKeyEventMonitor {
 
         let inputSourcesById = inputSources.reduce([String: TISInputSource]()) {
             dict, inputSource -> [String: TISInputSource] in
-                var dict = dict
-                if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
-                    dict[id] = inputSource
-                }
-                return dict
+            var dict = dict
+            if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
+                dict[id] = inputSource
+            }
+            return dict
         }
 
         if let mappings = defaults.dictionary(forKey: MAPPINGS_DEFAULTS_KEY) {
@@ -244,20 +246,21 @@ extension IOKeyEventMonitor {
 }
 
 // MARK: - Device Management
-extension IOKeyEventMonitor {
-    public func enableDevice(_ keyboard: String) {
+
+public extension IOKeyEventMonitor {
+    func enableDevice(_ keyboard: String) {
         deviceEnabled[keyboard] = true
         saveMappings()
     }
 
-    public func disableDevice(_ keyboard: String) {
+    func disableDevice(_ keyboard: String) {
         deviceEnabled[keyboard] = false
         saveMappings()
     }
 
-    public func enableDeviceByNumber(_ number: Int) {
+    func enableDeviceByNumber(_ number: Int) {
         let devices = Array(deviceEnabled.keys).sorted()
-        guard number > 0 && number <= devices.count else {
+        guard number > 0, number <= devices.count else {
             print("Invalid device number")
             return
         }
@@ -266,9 +269,9 @@ extension IOKeyEventMonitor {
         saveMappings()
     }
 
-    public func disableDeviceByNumber(_ number: Int) {
+    func disableDeviceByNumber(_ number: Int) {
         let devices = Array(deviceEnabled.keys).sorted()
-        guard number > 0 && number <= devices.count else {
+        guard number > 0, number <= devices.count else {
             print("Invalid device number")
             return
         }
@@ -277,7 +280,7 @@ extension IOKeyEventMonitor {
         saveMappings()
     }
 
-    public func getDevicesString() -> String {
+    func getDevicesString() -> String {
         return deviceEnabled
             .sorted { $0.key < $1.key }
             .enumerated()
@@ -286,14 +289,14 @@ extension IOKeyEventMonitor {
                 let number = index + 1
                 let status = isEnabled ? "enabled" : "disabled"
                 var layoutInfo = "no layout stored"
-                
+
                 if let source = kb2is[keyboard] {
                     let name = TISGetInputSourceProperty(source, kTISPropertyLocalizedName)
                     let localizedName = unmanagedStringToString(name) ?? "unknown"
                     let id = is2Id(source) ?? "unknown"
                     layoutInfo = "\(localizedName) (\(id))"
                 }
-                
+
                 return "\(number). \(keyboard): \(status) - \(layoutInfo)"
             }
             .joined(separator: "\n")
@@ -301,6 +304,7 @@ extension IOKeyEventMonitor {
 }
 
 // MARK: - Utilities
+
 extension IOKeyEventMonitor {
     private func is2Id(_ inputSource: TISInputSource) -> String? {
         return unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID))!
