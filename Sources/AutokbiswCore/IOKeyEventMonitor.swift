@@ -1,4 +1,5 @@
-// Copyright [2016] Jean Helou
+// Copyright 2016 Jean Helou
+// Copyright 2024 Ole Hüter
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
