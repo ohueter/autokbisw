@@ -7,19 +7,19 @@ on:
 
 jobs:
   publish:
-    name: Publish binaries for ${{ matrix.os }} ${{ matrix.name }} (${{ matrix.arch }})
+    name: Publish binaries for ${{ matrix.os }} ${{ matrix.os_name }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-12, macos-13, macos-14]
+        os: [macos-13, macos-14, macos-15]
         arch: [arm64, x86_64]
         include:
-          - os: macos-12
-            os_name: monterey
           - os: macos-13
             os_name: ventura
           - os: macos-14
             os_name: sonoma
+          - os: macos-15
+            os_name: sequoia
     steps:
       - uses: actions/checkout@v3
 
@@ -39,11 +39,47 @@ jobs:
           cd .build/release
           tar -czf ${{ steps.archive-name.outputs.value }} autokbisw
 
+      - name: Generate checksum
+        run: |
+          cd .build/release
+          shasum -a 256  ${{ steps.archive-name.outputs.value }} > SHA256SUM
+
       - name: Upload archive to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: .build/release/${{ steps.archive-name.outputs.value }}
           asset_name: ${{ steps.archive-name.outputs.value }}
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Upload checksum artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: checksums
+          path: .build/release/SHA256SUM
+
+  publish-checksums:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all checksums
+        uses: actions/download-artifact@v3
+        with:
+          name: checksums
+          path: checksums
+
+      - name: Combine checksums
+        run: |
+          cat checksums/SHA256SUM* > SHA256SUMS
+          echo "Combined checksums:"
+          cat SHA256SUMS
+
+      - name: Upload combined checksums to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: SHA256SUMS
+          asset_name: SHA256SUMS
           tag: ${{ github.ref }}
           overwrite: true

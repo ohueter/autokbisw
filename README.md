@@ -1,6 +1,14 @@
-# Autokbisw - Automatic keyboard input source switcher
+# autokbisw – Automatic keyboard input language switcher
 
-`autokbisw` is a useful tool for those who use multiple keyboards with different key layouts (e.g. English and French), and frequently switch between them. It runs as a background service and works by remembering the last active macOS input source (i.e., key mapping) for a specific keyboard and automatically restoring it when that keyboard becomes active again.
+Automatic keyboard input language switching for macOS.
+
+`autokbisw` is made for those who use multiple keyboards with different key layouts (e.g. English and French), and frequently switch between them. It runs as a background service and remembers the last active keyboard input language for a specific keyboard and automatically activates it when typing on that keyboard again.
+
+## Features
+
+- Automatically switches the keyboard layout (input source) based on the connected keyboard
+- Identifies keyboards by their product name, hardware ID, and optionally the connected USB port (location ID)
+- Command-line interface to enable/disable switching for specific keyboards
 
 ## Installation
 
@@ -15,15 +23,47 @@ Please note that `autokbisw` is compiled from source by Homebrew, so a full inst
 
 `autokbisw` requires privileges to monitor all keyboard input. You need to grant these privileges on the first start of the service.
 
-## Usage instructions
+## Getting started
 
-- Begin typing with your first keyboard, so it becomes the `active keyboard`.
-- Select the desired `Input source` for your first keyboard.
-- Begin typing with your second keyboard, so it becomes the `active keyboard`.
-- Select the desired `Input source` for your second keyboard.
+- Begin typing with your first keyboard, so it becomes the **active keyboard**.
+- Select the desired **keyboard layout** for your first keyboard by selecting it in the menu bar or pressing the <kbd>🌐</kbd> key.
+- Begin typing with your second keyboard, so it becomes the **active keyboard**.
+- Select the desired **keyboard layout** for your second keyboard.
 - Repeat if you are using more keyboards.
 
-You should notice that after the first keystroke on any of your keyboards, the input source automatically switches to the selected one. Note that the input source switch happens **after** the first keystroke, so you won't have the selected input source at this time.
+You should notice that after the first keystroke on any of your keyboards, the keyboard layout automatically switches to the selected one. Note that the keyboard layout switch happens **after** the first keystroke, so you won't have the selected keyboard layout at this time.
+
+## Enabling/disabling switching for specific keyboards
+
+By default, `autokbisw` uses device identification data reported by the hardware to determine whether to enable automatic switching. However, some devices report incorrect information: keyboards may identify as mice (and thus be initially disabled), while mice may identify as keyboards (triggering unwanted input source switches). If you encounter either issue, you can manually enable or disable switching for specific devices using the command-line interface.
+
+### Listing Devices
+
+To list all known devices and their current status:
+
+```sh
+autokbisw list
+```
+
+This will display a numbered list of devices with their identifier, status (enabled/disabled), and the associated keyboard layout.
+
+Note: Devices only appear in this list after they've been used for text input while `autokbisw` was running.
+
+### Enabling/disabling switching
+
+To enable keyboard layout switching for a specific keyboard:
+
+```sh
+autokbisw enable <device number or identifier>
+```
+
+To disable keyboard layout switching for a specific keyboard:
+
+```sh
+autokbisw disable <device number or identifier>
+```
+
+You can use either the device number (obtained from the `list` subcommand) or the device identifier to specify the keyboard.
 
 ## Building from source
 
@@ -36,20 +76,28 @@ swift build --configuration release
 
 The output will provide the path to the built binary, likely `.build/release/autokbisw`. You can run it from the `release` directory as is.
 
-### Command-Line Arguments
+### Command-line arguments
 
 ```
-USAGE: autokbisw [--verbose <verbosity>] [--location]
+OVERVIEW: Automatic keyboard/input source switching for macOS.
+
+USAGE: autokbisw [--verbose <verbosity>] [--location] <subcommand>
 
 OPTIONS:
   -v, --verbose <verbosity>
                           Print verbose output (1 = DEBUG, 2 = TRACE). (default: 0)
   -l, --location          Use locationId to identify keyboards.
-                          Note that the locationId changes when you plug a keyboard in a different port.
-                          Therefore using the locationId in the keyboards identifiers means the configured
-                          language will be associated to a keyboard on a specific port.
+        Note that the locationId changes when you plug a keyboard in a different port. Therefore using the locationId in the keyboards
+        identifiers means the configured language will be associated to a keyboard on a specific port.
   -h, --help              Show help information.
 
+SUBCOMMANDS:
+  enable                  Enable input source switching for <device number or identifier>.
+  disable                 Disable input source switching for <device number or identifier>.
+  list                    List all known devices and their current status.
+  clear                   Clear all stored mappings and device settings.
+
+  See 'autokbisw help <subcommand>' for detailed help.
 ```
 
 ## FAQ & Common issues
@@ -84,9 +132,7 @@ If `autokbisw` isn't working after the first start of the service, try these sol
 
 ### autokbisw doesn't work as expected with my Logitech keyboard or mouse.
 
-It seems that some Logitech devices miss-identify as keyboard or mouse, although they're actually the respective other kind of device (see GitHub issues [#7](https://github.com/ohueter/autokbisw/issues/7) or [#18](https://github.com/ohueter/autokbisw/issues/18) for examples). If `autokbisw` isn't working for you because of this issue, currently the only option is to fork the repository, edit the source code and build the program with your changes.
-
-**Help wanted:** We've sketched a software design change (manually activate or deactivate autokbisw for specific devices) in issues [#24](https://github.com/ohueter/autokbisw/issues/24) and [#25](https://github.com/ohueter/autokbisw/issues/25) to resolve this issue. If you are proficient in Swift and would like to contribute, your help would be greatly appreciated!
+It seems that some Logitech devices miss-identify as keyboard or mouse, although they're actually the respective other kind of device (see GitHub issues [#7](https://github.com/ohueter/autokbisw/issues/7) or [#18](https://github.com/ohueter/autokbisw/issues/18) for examples). If `autokbisw` isn't working for you because of this issue, try enabling/disabling switching for specific devices using the command-line interface (see [Enabling/disabling switching for specific keyboards](#enablingdisabling-switching-for-specific-keyboards)). Open a new issue if it's still not working for your device.
 
 ### Can autokbisw be used with the `Automatically switch to a document's input source` option?
 

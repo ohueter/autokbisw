@@ -60,3 +60,6 @@ xcuserdata
 .swiftpm
 
 .build/
+
+# Test files
+*Tests.swift.plist

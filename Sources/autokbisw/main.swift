@@ -1,4 +1,5 @@
-// Copyright [2016] Jean Helou
+// Copyright 2016 Jean Helou
+// Copyright 2024 Ole Hüter
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,14 +14,25 @@
 // limitations under the License.
 
 import ArgumentParser
+import AutokbiswCore
 import Foundation
 
-let DEBUG = 1
-let TRACE = 2
-
 struct Autokbisw: ParsableCommand {
+    private static let defaultUsagePage: Int = 0x01
+    private static let defaultUsage: Int = 6
+
+    private static func createMonitor(useLocation: Bool = false, verbosity: Int = 0) -> IOKeyEventMonitor? {
+        IOKeyEventMonitor(
+            usagePage: defaultUsagePage,
+            usage: defaultUsage,
+            useLocation: useLocation,
+            verbosity: verbosity
+        )
+    }
+
     static var configuration = CommandConfiguration(
-        abstract: "Automatic keyboard/input source switching for macOS."
+        abstract: "Automatic keyboard/input source switching for macOS.",
+        subcommands: [Enable.self, Disable.self, List.self, Clear.self]
     )
 
     @Option(
@@ -45,9 +57,72 @@ struct Autokbisw: ParsableCommand {
         if verbose > 0 {
             print("Starting with useLocation: \(location) - verbosity: \(verbose)")
         }
-        let monitor = IOKeyEventMonitor(usagePage: 0x01, usage: 6, useLocation: location, verbosity: verbose)
+        let monitor = Autokbisw.createMonitor(useLocation: location, verbosity: verbose)
         monitor?.start()
         CFRunLoopRun()
+    }
+
+    struct Enable: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            commandName: "enable",
+            abstract: "Enable input source switching for <device number or identifier>."
+        )
+
+        @Argument(help: "The device identifier or number (from list command) to enable")
+        var keyboard: String
+
+        func run() throws {
+            let monitor = Autokbisw.createMonitor()
+            if let number = Int(keyboard) {
+                monitor?.enableDeviceByNumber(number)
+            } else {
+                monitor?.enableDevice(keyboard)
+            }
+        }
+    }
+
+    struct Disable: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            commandName: "disable",
+            abstract: "Disable input source switching for <device number or identifier>."
+        )
+
+        @Argument(help: "The device identifier or number (from list command) to disable")
+        var keyboard: String
+
+        func run() throws {
+            let monitor = Autokbisw.createMonitor()
+            if let number = Int(keyboard) {
+                monitor?.disableDeviceByNumber(number)
+            } else {
+                monitor?.disableDevice(keyboard)
+            }
+        }
+    }
+
+    struct List: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            commandName: "list",
+            abstract: "List all known devices and their current status."
+        )
+
+        func run() throws {
+            let monitor = Autokbisw.createMonitor()
+            print(monitor?.getDevicesString() ?? "")
+        }
+    }
+
+    struct Clear: ParsableCommand {
+        static var configuration = CommandConfiguration(
+            commandName: "clear",
+            abstract: "Clear all stored mappings and device settings."
+        )
+
+        func run() throws {
+            let monitor = Autokbisw.createMonitor()
+            monitor?.clearAllSettings()
+            print("All stored settings have been cleared.")
+        }
     }
 }
 

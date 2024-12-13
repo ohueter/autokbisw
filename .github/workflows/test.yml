@@ -4,21 +4,23 @@ on: pull_request
 
 jobs:
   build:
-    name: Test build on ${{ matrix.os }}
+    name: Test build on ${{ matrix.os }} ${{ matrix.os_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: macos-12
-            os_name: monterey
           - os: macos-13
             os_name: ventura
           - os: macos-14
             os_name: sonoma
-
+          - os: macos-15
+            os_name: sequoia
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Test
+        run: swift test
 
       - name: Build
         run: swift build --configuration release --arch arm64 --arch x86_64
