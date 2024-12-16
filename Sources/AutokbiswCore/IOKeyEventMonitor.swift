@@ -19,10 +19,9 @@ import IOKit
 import IOKit.hid
 import IOKit.usb
 
-public let DEBUG = 1
-public let TRACE = 2
-
 public final class IOKeyEventMonitor {
+    private let log: Logger
+
     private let hidManager: IOHIDManager
     fileprivate let notificationCenter: CFNotificationCenter
 
@@ -37,11 +36,10 @@ public final class IOKeyEventMonitor {
     var kb2is: [String: TISInputSource] = .init()
 
     fileprivate var useLocation: Bool
-    public var verbosity: Int
 
     public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int, userDefaults: UserDefaults = .standard) {
         self.useLocation = useLocation
-        self.verbosity = verbosity
+        log = Logger(verbosity: verbosity)
         defaults = userDefaults
 
         hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -106,10 +104,7 @@ public final class IOKeyEventMonitor {
                 ? "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)-\(locationId)]"
                 : "\(product)-[\(vendorId)-\(productId)-\(manufacturer)-\(serialNumber)]"
 
-            if selfPtr.verbosity >= TRACE {
-                print("received event from device \(keyboard) - \(locationId) - \(uniqueId) - conformsToKeyboard: \(conformsToKeyboard)")
-            }
-
+            selfPtr.log.trace("received event from device \(keyboard) - \(locationId) - \(uniqueId) - conformsToKeyboard: \(conformsToKeyboard)")
             selfPtr.onKeyboardEvent(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         }
 
@@ -133,16 +128,11 @@ public final class IOKeyEventMonitor {
 public extension IOKeyEventMonitor {
     func restoreInputSource(keyboard: String) {
         guard let targetIs = kb2is[keyboard] else {
-            if verbosity >= TRACE {
-                print("No previous mapping saved for \(keyboard), awaiting the user to select the right one")
-            }
-
+            log.trace("No previous mapping saved for \(keyboard), awaiting the user to select the right one")
             return
         }
 
-        if verbosity >= DEBUG {
-            print("Setting input source for keyboard \(keyboard): \(targetIs)")
-        }
+        log.debug("Setting input source for keyboard \(keyboard): \(targetIs)")
 
         // This will trigger onInputSourceChanged()
         TISSelectInputSource(targetIs)
@@ -154,9 +144,7 @@ public extension IOKeyEventMonitor {
 
         // Only set a default value for deviceEnabled if conformsToKeyboard is provided
         if let isKeyboard = conformsToKeyboard, deviceEnabled[keyboard] == nil {
-            if verbosity >= DEBUG {
-                print("Enabling device by default because it is recognized as a keyboard")
-            }
+            log.debug("Enabling device by default because it is recognized as a keyboard")
             deviceEnabled[keyboard] = isKeyboard
         }
 
@@ -175,31 +163,22 @@ public extension IOKeyEventMonitor {
 
     func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
         guard lastActiveKeyboard != keyboard else {
-            if verbosity >= TRACE {
-                print("change: ignoring event from keyboard \(keyboard) because active device hasn't changed")
-            }
+            log.trace("change: ignoring event from keyboard \(keyboard) because active device hasn't changed")
             return
         }
 
-        if verbosity >= DEBUG {
-            print("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
-        }
+        log.debug("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
 
         let isEnabled = deviceEnabled[keyboard] ?? true
         guard isEnabled else {
-            if verbosity >= TRACE {
-                print("change: ignoring event from keyboard \(keyboard) because device is disabled")
-            }
-
+            log.trace("change: ignoring event from keyboard \(keyboard) because device is disabled")
             return
         }
 
         assignmentLock.lock()
         if kb2is[keyboard] == nil {
             // This keyboard has no mapping yet, store the current input source
-            if verbosity >= DEBUG {
-                print("New device detected: \(keyboard), storing current input source")
-            }
+            log.debug("New device detected: \(keyboard), storing current input source")
             storeInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         } else {
             // Keyboard is different from the previously used keyboard, restore settings.
@@ -312,9 +291,7 @@ extension IOKeyEventMonitor {
             postSettingsChangedNotification()
         }
 
-        if verbosity >= TRACE {
-            print("Saved keyboard mappings to UserDefaults")
-        }
+        log.trace("Saved keyboard mappings to UserDefaults")
     }
 
     public func clearAllSettings() {
@@ -335,16 +312,12 @@ extension IOKeyEventMonitor {
 
 private extension IOKeyEventMonitor {
     private func startObservingSettingsChanges() {
-        if verbosity >= TRACE {
-            print("Starting UserDefaults observation")
-        }
+        log.trace("Starting UserDefaults observation")
 
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         let callback: CFNotificationCallback = { _, observer, _, _, _ in
             let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(observer!).takeUnretainedValue()
-            if selfPtr.verbosity >= TRACE {
-                print("Received settings change notification")
-            }
+            selfPtr.log.trace("Received settings change notification")
             selfPtr.onSettingsChanged()
         }
 
@@ -369,10 +342,7 @@ private extension IOKeyEventMonitor {
     }
 
     private func postSettingsChangedNotification() {
-        if verbosity >= TRACE {
-            print("Posting settings changed notification")
-        }
-
+        log.trace("Posting settings changed notification")
         CFNotificationCenterPostNotification(
             notificationCenter,
             CFNotificationName("com.autokbisw.settingsChanged" as CFString),
@@ -396,9 +366,7 @@ private extension IOKeyEventMonitor {
             lastActiveKeyboard = nil
         }
 
-        if verbosity >= TRACE {
-            print("Reloaded mappings due to UserDefaults change")
-        }
+        log.trace("Reloaded mappings due to UserDefaults change")
     }
 }
 
