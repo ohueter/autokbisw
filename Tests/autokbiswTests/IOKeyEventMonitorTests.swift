@@ -200,4 +200,30 @@ class IOKeyEventMonitorTests: XCTestCase {
         // State should remain unchanged
         XCTAssertTrue(monitor.deviceEnabled[testKeyboard] ?? false, "Device state should not change with invalid number")
     }
+
+    func testAddNewKeyboardBasedOnMapping() {
+        let testKeyboard = "TestKeyboard-[1-2-TestManufacturer-123-456]"
+
+        // Test first keyboard with conformsToKeyboard = true
+        monitor.onKeyboardEvent(keyboard: testKeyboard, conformsToKeyboard: true)
+        XCTAssertNotNil(monitor.kb2is[testKeyboard], "Keyboard should have input source mapping")
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard] ?? false, "Keyboard should be enabled when conformsToKeyboard is true")
+
+        // Clear settings and test with conformsToKeyboard = false
+        monitor.clearAllSettings()
+        monitor.onKeyboardEvent(keyboard: testKeyboard, conformsToKeyboard: false)
+        XCTAssertNotNil(monitor.kb2is[testKeyboard], "Keyboard should have input source mapping")
+        XCTAssertFalse(monitor.deviceEnabled[testKeyboard] ?? true, "Keyboard should be disabled when conformsToKeyboard is false")
+
+        // Test that subsequent events don't change the mapping or enabled state
+        monitor.onKeyboardEvent(keyboard: testKeyboard, conformsToKeyboard: true)
+        XCTAssertFalse(monitor.deviceEnabled[testKeyboard] ?? true, "Enabled state should not change for existing keyboard")
+
+        // Test with a second keyboard
+        let testKeyboard2 = "TestKeyboard2-[3-4-TestManufacturer-789-012]"
+        monitor.onKeyboardEvent(keyboard: testKeyboard2, conformsToKeyboard: true)
+        XCTAssertNotNil(monitor.kb2is[testKeyboard2], "Second keyboard should have input source mapping")
+        XCTAssertTrue(monitor.deviceEnabled[testKeyboard2] ?? false, "Second keyboard should be enabled")
+        XCTAssertFalse(monitor.deviceEnabled[testKeyboard] ?? true, "First keyboard should remain disabled")
+    }
 }

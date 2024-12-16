@@ -171,13 +171,13 @@ public extension IOKeyEventMonitor {
     func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
         guard lastActiveKeyboard != keyboard else { return }
 
-        if verbosity >= TRACE {
+        if verbosity >= DEBUG {
             print("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
         }
 
         let isEnabled = deviceEnabled[keyboard] ?? true
         guard isEnabled else {
-            if verbosity >= DEBUG {
+            if verbosity >= TRACE {
                 print("change: ignoring event from keyboard \(keyboard) because device is disabled")
             }
 
@@ -185,10 +185,11 @@ public extension IOKeyEventMonitor {
         }
 
         assignmentLock.lock()
-        if lastActiveKeyboard == nil {
-            // It's the first keyboard event from this keyboard since starting the program.
-            // Persist settings, assuming the current setup is what the user wants to use
-            // for the currently typing keyboard.
+        if kb2is[keyboard] == nil {
+            // This keyboard has no mapping yet, store the current input source
+            if verbosity >= DEBUG {
+                print("New device detected: \(keyboard), storing current input source")
+            }
             storeInputSource(keyboard: keyboard, conformsToKeyboard: conformsToKeyboard)
         } else {
             // Keyboard is different from the previously used keyboard, restore settings.
