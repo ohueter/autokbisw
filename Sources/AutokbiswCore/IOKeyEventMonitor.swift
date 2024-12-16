@@ -273,6 +273,9 @@ public extension IOKeyEventMonitor {
 
 extension IOKeyEventMonitor {
     func loadMappings() {
+        kb2is.removeAll()
+        deviceEnabled.removeAll()
+
         let selectableIsProperties = [
             kTISPropertyInputSourceIsEnableCapable: true,
             kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource ?? "" as CFString,
@@ -315,12 +318,16 @@ extension IOKeyEventMonitor {
     }
 
     public func clearAllSettings() {
-        kb2is.removeAll()
-        deviceEnabled.removeAll()
-        lastActiveKeyboard = nil
-        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
-        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
-        defaults.synchronize()
+        withPausedSettingsObserver {
+            kb2is.removeAll()
+            deviceEnabled.removeAll()
+            lastActiveKeyboard = nil
+            defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
+            defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
+            defaults.synchronize()
+
+            postSettingsChangedNotification()
+        }
     }
 }
 
@@ -383,6 +390,12 @@ private extension IOKeyEventMonitor {
 
     private func onSettingsChanged() {
         loadMappings()
+
+        // If mappings are empty, settings were cleared in another instance
+        if kb2is.isEmpty, deviceEnabled.isEmpty {
+            lastActiveKeyboard = nil
+        }
+
         if verbosity >= TRACE {
             print("Reloaded mappings due to UserDefaults change")
         }
