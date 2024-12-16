@@ -48,11 +48,14 @@ public final class IOKeyEventMonitor {
         notificationCenter = CFNotificationCenterGetDistributedCenter()
         let deviceMatch: CFMutableDictionary = [kIOHIDDeviceUsageKey: usage, kIOHIDDeviceUsagePageKey: usagePage] as NSMutableDictionary
         IOHIDManagerSetDeviceMatching(hidManager, deviceMatch)
+
         loadMappings()
     }
 
     deinit {
         self.saveMappings()
+        stopObservingSettingsChanges()
+
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
         IOHIDManagerRegisterInputValueCallback(hidManager, Optional.none, context)
         CFNotificationCenterRemoveObserver(notificationCenter, context, CFNotificationName(kTISNotifySelectedKeyboardInputSourceChanged), nil)
@@ -66,6 +69,8 @@ public final class IOKeyEventMonitor {
 
         IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
         IOHIDManagerOpen(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+        startObservingSettingsChanges()
     }
 
     private func observeIputSourceChangedNotification(context: UnsafeMutableRawPointer) {
@@ -169,7 +174,12 @@ public extension IOKeyEventMonitor {
     }
 
     func onKeyboardEvent(keyboard: String, conformsToKeyboard: Bool? = nil) {
-        guard lastActiveKeyboard != keyboard else { return }
+        guard lastActiveKeyboard != keyboard else {
+            if verbosity >= TRACE {
+                print("change: ignoring event from keyboard \(keyboard) because active device hasn't changed")
+            }
+            return
+        }
 
         if verbosity >= DEBUG {
             print("change: keyboard changed from \(lastActiveKeyboard ?? "nil") to \(keyboard)")
@@ -198,52 +208,6 @@ public extension IOKeyEventMonitor {
 
         lastActiveKeyboard = keyboard
         assignmentLock.unlock()
-    }
-}
-
-// MARK: - Persistence
-
-extension IOKeyEventMonitor {
-    func loadMappings() {
-        let selectableIsProperties = [
-            kTISPropertyInputSourceIsEnableCapable: true,
-            kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource ?? "" as CFString,
-        ] as CFDictionary
-        let inputSources = TISCreateInputSourceList(selectableIsProperties, false).takeUnretainedValue() as! [TISInputSource]
-
-        let inputSourcesById = inputSources.reduce([String: TISInputSource]()) {
-            dict, inputSource -> [String: TISInputSource] in
-            var dict = dict
-            if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
-                dict[id] = inputSource
-            }
-            return dict
-        }
-
-        if let mappings = defaults.dictionary(forKey: MAPPINGS_DEFAULTS_KEY) {
-            for (keyboardId, inputSourceId) in mappings {
-                kb2is[keyboardId] = inputSourcesById[String(describing: inputSourceId)]
-            }
-        }
-
-        if let enabledMappings = defaults.dictionary(forKey: MAPPING_ENABLED_KEY) as? [String: Bool] {
-            deviceEnabled = enabledMappings
-        }
-    }
-
-    func saveMappings() {
-        let mappings = kb2is.mapValues(is2Id)
-        defaults.set(mappings, forKey: MAPPINGS_DEFAULTS_KEY)
-        defaults.set(deviceEnabled, forKey: MAPPING_ENABLED_KEY)
-    }
-
-    public func clearAllSettings() {
-        kb2is.removeAll()
-        deviceEnabled.removeAll()
-        lastActiveKeyboard = nil
-        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
-        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
-        defaults.synchronize()
     }
 }
 
@@ -302,6 +266,126 @@ public extension IOKeyEventMonitor {
                 return "\(number). \(keyboard): \(status) - \(layoutInfo)"
             }
             .joined(separator: "\n")
+    }
+}
+
+// MARK: - Persistence
+
+extension IOKeyEventMonitor {
+    func loadMappings() {
+        let selectableIsProperties = [
+            kTISPropertyInputSourceIsEnableCapable: true,
+            kTISPropertyInputSourceCategory: kTISCategoryKeyboardInputSource ?? "" as CFString,
+        ] as CFDictionary
+        let inputSources = TISCreateInputSourceList(selectableIsProperties, false).takeUnretainedValue() as! [TISInputSource]
+
+        let inputSourcesById = inputSources.reduce([String: TISInputSource]()) {
+            dict, inputSource -> [String: TISInputSource] in
+            var dict = dict
+            if let id = unmanagedStringToString(TISGetInputSourceProperty(inputSource, kTISPropertyInputSourceID)) {
+                dict[id] = inputSource
+            }
+            return dict
+        }
+
+        if let mappings = defaults.dictionary(forKey: MAPPINGS_DEFAULTS_KEY) {
+            for (keyboardId, inputSourceId) in mappings {
+                kb2is[keyboardId] = inputSourcesById[String(describing: inputSourceId)]
+            }
+        }
+
+        if let enabledMappings = defaults.dictionary(forKey: MAPPING_ENABLED_KEY) as? [String: Bool] {
+            deviceEnabled = enabledMappings
+        }
+    }
+
+    func saveMappings() {
+        withPausedSettingsObserver {
+            let mappings = kb2is.mapValues(is2Id)
+            defaults.set(mappings, forKey: MAPPINGS_DEFAULTS_KEY)
+            defaults.set(deviceEnabled, forKey: MAPPING_ENABLED_KEY)
+            defaults.synchronize()
+
+            postSettingsChangedNotification()
+        }
+
+        if verbosity >= TRACE {
+            print("Saved keyboard mappings to UserDefaults")
+        }
+    }
+
+    public func clearAllSettings() {
+        kb2is.removeAll()
+        deviceEnabled.removeAll()
+        lastActiveKeyboard = nil
+        defaults.removeObject(forKey: MAPPINGS_DEFAULTS_KEY)
+        defaults.removeObject(forKey: MAPPING_ENABLED_KEY)
+        defaults.synchronize()
+    }
+}
+
+// MARK: - Settings Change Notifications
+
+private extension IOKeyEventMonitor {
+    private func startObservingSettingsChanges() {
+        if verbosity >= TRACE {
+            print("Starting UserDefaults observation")
+        }
+
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        let callback: CFNotificationCallback = { _, observer, _, _, _ in
+            let selfPtr = Unmanaged<IOKeyEventMonitor>.fromOpaque(observer!).takeUnretainedValue()
+            if selfPtr.verbosity >= TRACE {
+                print("Received settings change notification")
+            }
+            selfPtr.onSettingsChanged()
+        }
+
+        CFNotificationCenterAddObserver(
+            notificationCenter,
+            context,
+            callback,
+            "com.autokbisw.settingsChanged" as CFString,
+            nil,
+            .deliverImmediately
+        )
+    }
+
+    private func stopObservingSettingsChanges() {
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        CFNotificationCenterRemoveObserver(
+            notificationCenter,
+            context,
+            CFNotificationName("com.autokbisw.settingsChanged" as CFString),
+            nil
+        )
+    }
+
+    private func postSettingsChangedNotification() {
+        if verbosity >= TRACE {
+            print("Posting settings changed notification")
+        }
+
+        CFNotificationCenterPostNotification(
+            notificationCenter,
+            CFNotificationName("com.autokbisw.settingsChanged" as CFString),
+            nil,
+            nil,
+            true
+        )
+    }
+
+    private func withPausedSettingsObserver<T>(_ operation: () -> T) -> T {
+        stopObservingSettingsChanges()
+        defer { startObservingSettingsChanges() }
+        return operation()
+    }
+
+    private func onSettingsChanged() {
+        loadMappings()
+        if verbosity >= TRACE {
+            print("Reloaded mappings due to UserDefaults change")
+        }
     }
 }
 
