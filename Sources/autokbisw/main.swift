@@ -18,8 +18,8 @@ import AutokbiswCore
 import Foundation
 
 struct Autokbisw: ParsableCommand {
-    private static let defaultUsagePage: Int = 0x01
-    private static let defaultUsage: Int = 6
+    private static let defaultUsagePage: Int = .init(kHIDPage_GenericDesktop)
+    private static let defaultUsage: Int = .init(kHIDUsage_GD_Keyboard)
 
     private static func createMonitor(useLocation: Bool = false, verbosity: Int = 0) -> IOKeyEventMonitor? {
         IOKeyEventMonitor(
@@ -59,6 +59,8 @@ struct Autokbisw: ParsableCommand {
         }
         let monitor = Autokbisw.createMonitor(useLocation: location, verbosity: verbose)
         monitor?.start()
+        // DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+        // monitor.retryWithPermissions()
         CFRunLoopRun()
     }
 
