@@ -134,6 +134,18 @@ public extension IOKeyEventMonitor {
         // Close and reopen HID manager to ensure clean state
         IOHIDManagerClose(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
 
+        let openResult = IOHIDManagerOpen(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+        if openResult == kIOReturnSuccess {
+            log.debug("HID Manager opened successfully")
+        } else {
+            log.debug("Failed to open HID Manager: \(openResult)")
+            // Back off 1 second and try again
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startMonitoring()
+            }
+            return
+        }
+
         // Reset device matching to re-enumerate all devices
         let deviceMatch: CFMutableDictionary = [
             kIOHIDDeviceUsagePageKey: kHIDPage_GenericDesktop,
@@ -143,14 +155,6 @@ public extension IOKeyEventMonitor {
 
         observeIputSourceChangedNotification(context: context)
         registerHIDKeyboardCallback(context: context)
-
-        // Open manager and schedule with runloop
-        let openResult = IOHIDManagerOpen(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
-        if openResult == kIOReturnSuccess {
-            log.debug("HID Manager opened successfully")
-        } else {
-            log.debug("Failed to open HID Manager: \(openResult)")
-        }
 
         IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
 
@@ -185,7 +189,13 @@ public extension IOKeyEventMonitor {
         // Unschedule and close properly
         IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
         IOHIDManagerRegisterInputValueCallback(hidManager, nil, context)
-        IOHIDManagerClose(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+        let closeResult = IOHIDManagerClose(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+        if closeResult == kIOReturnSuccess {
+            log.debug("HID Manager closed successfully")
+        } else {
+            log.debug("Failed to close HID Manager: \(closeResult)")
+        }
 
         stopObservingSettingsChanges()
         isMonitoring = false
@@ -195,7 +205,7 @@ public extension IOKeyEventMonitor {
         log.debug("Restarting monitoring...")
         stopMonitoring()
         // Add small delay to ensure USB system is ready
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.startMonitoring()
         }
         log.debug("Monitoring restarted")
