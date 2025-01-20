@@ -25,7 +25,11 @@ let package = Package(
         ),
         .executableTarget(
             name: "autokbisw",
-            dependencies: ["AutokbiswCore"]
+            dependencies: ["AutokbiswCore"],
+            swiftSettings: [
+                .define("SWIFT_PACKAGE_INFOPLIST", .when(configuration: .debug)),
+                .define("SWIFT_PACKAGE_INFOPLIST", .when(configuration: .release)),
+            ]
         ),
         .testTarget(
             name: "autokbiswTests",
