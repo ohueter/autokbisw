@@ -127,7 +127,10 @@ public final class IOKeyEventMonitor {
 
 public extension IOKeyEventMonitor {
     private func startMonitoring() {
-        guard !isMonitoring else { return }
+        guard !isMonitoring else {
+            log.trace("startMonitoring() called although already monitoring")
+            return
+        }
 
         let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
@@ -154,12 +157,6 @@ public extension IOKeyEventMonitor {
         IOHIDManagerSetDeviceMatching(hidManager, deviceMatch)
 
         observeIputSourceChangedNotification(context: context)
-        registerHIDKeyboardCallback(context: context)
-
-        IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
-
-        startObservingSettingsChanges()
-        isMonitoring = true
 
         if let devices = IOHIDManagerCopyDevices(hidManager) {
             let count = CFSetGetCount(devices)
@@ -178,6 +175,16 @@ public extension IOKeyEventMonitor {
             }
 
             deviceArray.deallocate()
+
+            registerHIDKeyboardCallback(context: context)
+            IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
+            startObservingSettingsChanges()
+            isMonitoring = true
+        } else {
+            log.debug("Failed to enumerate devices, retrying...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startMonitoring()
+            }
         }
     }
 
