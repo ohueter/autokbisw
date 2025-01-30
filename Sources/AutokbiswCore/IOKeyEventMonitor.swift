@@ -13,11 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import AppKit
 import Carbon
 import Foundation
 import IOKit
 import IOKit.hid
 import IOKit.usb
+import IOKit.usb.IOUSBLib
 
 public final class IOKeyEventMonitor {
     private let log: Logger
@@ -37,13 +39,18 @@ public final class IOKeyEventMonitor {
 
     fileprivate var useLocation: Bool
 
+    private var isMonitoring: Bool = false
+    private var restartWorkItem: DispatchWorkItem?
+
+    // TODO: add properties for page and usage
     public init? (usagePage: Int, usage: Int, useLocation: Bool, verbosity: Int, userDefaults: UserDefaults = .standard) {
         self.useLocation = useLocation
         log = Logger(verbosity: verbosity)
         defaults = userDefaults
 
-        hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         notificationCenter = CFNotificationCenterGetDistributedCenter()
+        hidManager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+
         let deviceMatch: CFMutableDictionary = [kIOHIDDeviceUsageKey: usage, kIOHIDDeviceUsagePageKey: usagePage] as NSMutableDictionary
         IOHIDManagerSetDeviceMatching(hidManager, deviceMatch)
 
@@ -51,24 +58,17 @@ public final class IOKeyEventMonitor {
     }
 
     deinit {
-        self.saveMappings()
+        restartWorkItem?.cancel()
+        restartWorkItem = nil
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        stopMonitoring()
         stopObservingSettingsChanges()
-
-        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-        IOHIDManagerRegisterInputValueCallback(hidManager, Optional.none, context)
-        CFNotificationCenterRemoveObserver(notificationCenter, context, CFNotificationName(kTISNotifySelectedKeyboardInputSourceChanged), nil)
+        self.saveMappings()
     }
 
     public func start() {
-        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-
-        observeIputSourceChangedNotification(context: context)
-        registerHIDKeyboardCallback(context: context)
-
-        IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
-        IOHIDManagerOpen(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
-
-        startObservingSettingsChanges()
+        startMonitoring()
+        startObservingSystemEvents()
     }
 
     private func observeIputSourceChangedNotification(context: UnsafeMutableRawPointer) {
@@ -120,6 +120,204 @@ public final class IOKeyEventMonitor {
 
     private func deviceConformsToKeyboard(_ device: IOHIDDevice) -> Bool {
         return IOHIDDeviceConformsTo(device, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard))
+    }
+}
+
+// MARK: - Monitoring Management
+
+public extension IOKeyEventMonitor {
+    private func startMonitoring() {
+        guard !isMonitoring else {
+            log.trace("startMonitoring() called although already monitoring")
+            return
+        }
+
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+
+        // Close and reopen HID manager to ensure clean state
+        IOHIDManagerClose(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+
+        let openResult = IOHIDManagerOpen(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+        if openResult == kIOReturnSuccess {
+            log.debug("HID Manager opened successfully")
+        } else {
+            log.debug("Failed to open HID Manager: \(openResult)")
+            // Back off 1 second and try again
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startMonitoring()
+            }
+            return
+        }
+
+        // Reset device matching to re-enumerate all devices
+        let deviceMatch: CFMutableDictionary = [
+            kIOHIDDeviceUsagePageKey: kHIDPage_GenericDesktop,
+            kIOHIDDeviceUsageKey: kHIDUsage_GD_Keyboard,
+        ] as NSMutableDictionary
+        IOHIDManagerSetDeviceMatching(hidManager, deviceMatch)
+
+        observeIputSourceChangedNotification(context: context)
+
+        if let devices = IOHIDManagerCopyDevices(hidManager) {
+            let count = CFSetGetCount(devices)
+            let deviceArray = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: count)
+            CFSetGetValues(devices, deviceArray)
+
+            log.debug("Currently connected HID devices: \(count)")
+
+            for i in 0 ..< count {
+                guard let devicePtr = deviceArray[i] else { continue }
+                let device = Unmanaged<IOHIDDevice>.fromOpaque(devicePtr).takeUnretainedValue()
+                if deviceConformsToKeyboard(device) {
+                    let product = deviceProperty(device, kIOHIDProductKey)
+                    log.debug("Found HID device: \(product)")
+                }
+            }
+
+            deviceArray.deallocate()
+
+            registerHIDKeyboardCallback(context: context)
+            IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
+            startObservingSettingsChanges()
+            isMonitoring = true
+        } else {
+            log.debug("Failed to enumerate devices, retrying...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startMonitoring()
+            }
+        }
+    }
+
+    private func stopMonitoring() {
+        guard isMonitoring else { return }
+
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+
+        // Unschedule and close properly
+        IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode!.rawValue)
+        IOHIDManagerRegisterInputValueCallback(hidManager, nil, context)
+
+        let closeResult = IOHIDManagerClose(hidManager, IOOptionBits(kIOHIDOptionsTypeNone))
+        if closeResult == kIOReturnSuccess {
+            log.debug("HID Manager closed successfully")
+        } else {
+            log.debug("Failed to close HID Manager: \(closeResult)")
+        }
+
+        stopObservingSettingsChanges()
+        isMonitoring = false
+    }
+
+    private func restartMonitoring() {
+        log.debug("Restarting monitoring...")
+        stopMonitoring()
+        // Add small delay to ensure USB system is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.startMonitoring()
+        }
+        log.debug("Monitoring restarted")
+    }
+
+    private func debouncedRestartMonitoring() {
+        // Cancel any pending restart
+        restartWorkItem?.cancel()
+
+        // Create new work item
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.restartMonitoring()
+        }
+        restartWorkItem = workItem
+
+        // Schedule restart with delay to allow device initialization
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+    }
+
+    private func startObservingSystemEvents() {
+        log.debug("Starting system event observation")
+
+        // Sleep/Wake notifications
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleWakeNotification),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+
+        // USB device changes
+        let matchingDict = IOServiceMatching(kIOUSBDeviceClassName) as NSMutableDictionary
+
+        let port: IONotificationPortRef
+        if #available(macOS 12.0, *) {
+            port = IONotificationPortCreate(kIOMainPortDefault)
+        } else {
+            // Use kIOMasterPortDefault for older macOS versions
+            port = IONotificationPortCreate(kIOMasterPortDefault)
+        }
+
+        IONotificationPortSetDispatchQueue(port, DispatchQueue.main)
+
+        // Create context pointer
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+
+        // Use a static callback function
+        let callback: IOServiceMatchingCallback = { userData, iterator in
+            guard let userData = userData else { return }
+            let monitor = Unmanaged<IOKeyEventMonitor>.fromOpaque(userData).takeUnretainedValue()
+            monitor.log.debug("USB device change detected")
+
+            // Process all matched devices
+            var device: io_service_t = IOIteratorNext(iterator)
+            while device != 0 {
+                var name: [Int8] = Array(repeating: 0, count: 128)
+                IORegistryEntryGetName(device, &name)
+                let deviceName = String(cString: name)
+                monitor.log.debug("USB device event for: \(deviceName)")
+                IOObjectRelease(device)
+                device = IOIteratorNext(iterator)
+            }
+
+            monitor.debouncedRestartMonitoring()
+        }
+
+        // Register for different types of notifications
+        let notifications = [
+            kIOPublishNotification, // Device added
+            kIOTerminatedNotification, // Device removed
+            kIOMatchedNotification, // Device matched
+        ]
+
+        var iterators: [io_iterator_t] = Array(repeating: 0, count: notifications.count)
+
+        for (index, notification) in notifications.enumerated() {
+            // Create a new copy of the matching dictionary for each notification
+            let matchCopy = matchingDict.mutableCopy() as! CFMutableDictionary
+
+            let result = IOServiceAddMatchingNotification(
+                port,
+                notification,
+                matchCopy,
+                callback,
+                context,
+                &iterators[index]
+            )
+
+            if result == KERN_SUCCESS {
+                log.debug("Successfully registered for USB notification type: \(notification)")
+                // Clear initial iterator
+                callback(context, iterators[index])
+            } else {
+                log.debug("Failed to register USB notification type: \(notification), error: \(result)")
+            }
+        }
+    }
+
+    @objc private func handleWakeNotification() {
+        log.debug("System woke from sleep, restarting monitoring")
+
+        // Wait a moment for USB devices to be fully initialized
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.restartMonitoring()
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -23,9 +23,13 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
-        .target(
+        .executableTarget(
             name: "autokbisw",
-            dependencies: ["AutokbiswCore"]
+            dependencies: ["AutokbiswCore"],
+            swiftSettings: [
+                .define("SWIFT_PACKAGE_INFOPLIST", .when(configuration: .debug)),
+                .define("SWIFT_PACKAGE_INFOPLIST", .when(configuration: .release)),
+            ]
         ),
         .testTarget(
             name: "autokbiswTests",
